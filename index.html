@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InverWork — Inverfin Holding</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- ══ FIREBASE SDK ══ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, push, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ┌─────────────────────────────────────────────────────────────┐
+// │  🔧 REEMPLAZA ESTOS VALORES CON LOS DE TU PROYECTO FIREBASE │
+// └─────────────────────────────────────────────────────────────┘
+const firebaseConfig = {
+  apiKey:            "TU_API_KEY",
+  authDomain:        "TU_PROYECTO.firebaseapp.com",
+  databaseURL:       "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+  projectId:         "TU_PROYECTO",
+  storageBucket:     "TU_PROYECTO.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId:             "TU_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// Expose DB helpers to window so non-module scripts can use them
+window.DB = {
+  // Write
+  setUser:    (uid, data)      => set(ref(db, `users/${uid}`), data),
+  setProject: (key, data)      => set(ref(db, `projects/${key}`), data),
+  addLog:     (data)           => push(ref(db, `logs`), data),
+  delUser:    (uid)            => remove(ref(db, `users/${uid}`)),
+
+  // Read once
+  getUsers:    () => get(ref(db, `users`)).then(s => s.val() || {}),
+  getProjects: () => get(ref(db, `projects`)).then(s => s.val() || {}),
+  getLogs:     () => get(ref(db, `logs`)).then(s => {
+    const val = s.val() || {};
+    return Object.values(val).sort((a,b) => new Date(b.ts) - new Date(a.ts));
+  }),
+
+  // Real-time listeners
+  onProjects: (cb) => onValue(ref(db, `projects`), s => cb(s.val() || {})),
+  onLogs:     (cb) => onValue(ref(db, `logs`), s => {
+    const val = s.val() || {};
+    cb(Object.values(val).sort((a,b) => new Date(b.ts) - new Date(a.ts)));
+  }),
+};
+
+// Signal that Firebase is ready
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<style>
+/* ══════════════════════════════════════════════
+   INVERWORK · INVERFIN HOLDING
+   Premium Fintech UI — Luxury Dark Edition
+   Designed for excellence
+══════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  /* Core greens */
+  --g950:#040F08; --g900:#071A0E; --g850:#0A2414;
+  --g800:#0D2E1A; --g750:#113A22; --g700:#16502F;
+  --g600:#1D6B3E; --g500:#248A50; --g400:#2DB866;
+  --g300:#4DD98A; --g200:#8EECB5; --g100:#C5F5D9; --g50:#EEF9F4;
+
+  /* Gold accent */
+  --gold:#C9A84C; --gold-light:#E8C97A; --gold-bg:rgba(201,168,76,0.08);
+
+  /* Neutrals */
+  --ink:#030A05; --ink2:#0F2015; --ink3:#2D5C3D;
+  --surface:#FFFFFF; --surface2:#F6FCF8; --surface3:#EAF5EF;
+  --border:#D0E8D8; --border2:#E4F2E9;
+
+  /* Utility */
+  --red:#B53030; --red-bg:#FAEAEA;
+  --orange:#C05A1A; --orange-bg:#FEF0E5;
+  --blue:#1A5499; --blue-bg:#E6EFF9;
+  --purple:#5C2E9A; --purple-bg:#F2EAFC;
+
+  --r:12px; --r2:16px;
+  --shadow-sm:0 1px 4px rgba(7,26,14,.06);
+  --shadow:0 4px 16px rgba(7,26,14,.10);
+  --shadow-lg:0 12px 40px rgba(7,26,14,.18);
+  --shadow-xl:0 24px 64px rgba(7,26,14,.28);
+
+  --transition: all .22s cubic-bezier(.4,0,.2,1);
+}
+
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--g950);
+  color:var(--surface);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ══ SPLASH ══ */
+#splash{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--g950);
+  transition:opacity .7s ease, transform .7s ease;
+}
+#splash.hide{opacity:0;transform:scale(1.04);pointer-events:none}
+
+.splash-emblem{
+  width:72px;height:72px;border-radius:20px;
+  background:linear-gradient(135deg, var(--g600) 0%, var(--g400) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin-bottom:24px;
+  box-shadow:0 0 0 1px rgba(77,217,138,.2), 0 16px 48px rgba(13,46,26,.5);
+  animation:emblem-pulse 2s ease infinite;
+}
+@keyframes emblem-pulse{
+  0%,100%{box-shadow:0 0 0 1px rgba(77,217,138,.2),0 16px 48px rgba(13,46,26,.5)}
+  50%{box-shadow:0 0 0 8px rgba(77,217,138,.08),0 16px 48px rgba(13,46,26,.5)}
+}
+
+.splash-wordmark{
+  font-family:'Playfair Display',serif;
+  font-size:38px;font-weight:700;letter-spacing:-.5px;
+  color:#fff;margin-bottom:4px;
+}
+.splash-wordmark em{color:var(--g300);font-style:italic}
+.splash-tagline{
+  font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);margin-bottom:48px;
+}
+.splash-bar{
+  width:160px;height:2px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;
+}
+.splash-bar-fill{
+  height:100%;width:0%;background:linear-gradient(90deg,var(--g400),var(--gold));
+  border-radius:99px;animation:bar-fill 2.5s ease forwards;
+}
+@keyframes bar-fill{to{width:100%}}
+.splash-status{font-size:11px;color:rgba(255,255,255,.25);margin-top:14px;letter-spacing:.3px}
+
+/* ══ LOGIN ══ */
+#login-screen{
+  min-height:100vh;display:none;align-items:center;justify-content:center;
+  background:var(--g950);position:relative;overflow:hidden;
+}
+#login-screen.show{display:flex}
+
+/* Animated background */
+#login-screen::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 70% at 15% 50%, rgba(29,107,62,.22) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 85% 20%, rgba(201,168,76,.07) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 50% at 60% 85%, rgba(13,46,26,.6) 0%, transparent 50%);
+}
+#login-screen::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(45,92,61,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,92,61,.06) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 80%);
+}
+
+/* Floating orbs */
+.login-orb{
+  position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;
+  animation:orb-float 8s ease-in-out infinite;
+}
+.login-orb-1{width:400px;height:400px;background:rgba(29,107,62,.15);top:-100px;left:-100px;animation-delay:0s}
+.login-orb-2{width:300px;height:300px;background:rgba(201,168,76,.08);bottom:-80px;right:-60px;animation-delay:-3s}
+.login-orb-3{width:200px;height:200px;background:rgba(45,184,102,.10);top:50%;right:15%;animation-delay:-5s}
+@keyframes orb-float{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-30px) scale(1.05)}
+}
+
+.lbox{
+  background:rgba(10,36,20,.85);
+  backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  border:1px solid rgba(77,217,138,.12);
+  border-radius:24px;padding:52px 48px;width:100%;max-width:440px;
+  position:relative;z-index:1;
+  box-shadow:0 0 0 1px rgba(255,255,255,.04),var(--shadow-xl);
+  animation:slide-up .6s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slide-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+.lbox-glow{
+  position:absolute;top:-1px;left:24px;right:24px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(77,217,138,.5),rgba(201,168,76,.3),transparent);
+  border-radius:99px;
+}
+
+.lbrand{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.licon{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,var(--g600),var(--g400));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 4px 16px rgba(45,184,102,.3),0 0 0 1px rgba(77,217,138,.2);
+  flex-shrink:0;
+}
+.llogo{
+  font-family:'Playfair Display',serif;font-size:28px;font-weight:700;
+  color:#fff;letter-spacing:-.3px;line-height:1;
+}
+.llogo em{color:var(--g300);font-style:italic}
+
+.lcompany{
+  font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;
+  color:rgba(255,255,255,.28);margin-bottom:36px;padding-left:62px;
+  border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:28px;
+}
+
+.llbl{
+  font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:rgba(255,255,255,.4);margin-bottom:8px;
+}
+.linput{
+  width:100%;padding:13px 16px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;font-size:14px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  color:#fff;outline:none;margin-bottom:16px;
+  transition:var(--transition);
+}
+.linput:focus{
+  border-color:var(--g400);
+  background:rgba(255,255,255,.08);
+  box-shadow:0 0 0 3px rgba(45,184,102,.12);
+}
+.linput::placeholder{color:rgba(255,255,255,.2)}
+
+.lbtn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--g500) 0%,var(--g400) 100%);
+  border:none;border-radius:10px;color:#fff;
+  font-size:14px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;transition:var(--transition);letter-spacing:.3px;
+  box-shadow:0 4px 20px rgba(45,184,102,.35),0 0 0 1px rgba(77,217,138,.2);
+  position:relative;overflow:hidden;
+}
+.lbtn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);
+  pointer-events:none;
+}
+.lbtn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 28px rgba(45,184,102,.45),0 0 0 1px rgba(77,217,138,.3);
+}
+.lbtn:active{transform:translateY(0)}
+.lbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.lerr{font-size:12px;color:#FF8A8A;margin-top:10px;text-align:center;min-height:18px}
+.ldiv{border:none;border-top:1px solid rgba(255,255,255,.08);margin:24px 0}
+.llink{font-size:13px;color:rgba(255,255,255,.38);text-align:center}
+.llink span{color:var(--g300);cursor:pointer;font-weight:600;transition:color .2s}
+.llink span:hover{color:var(--g200)}
+
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.role-opt{
+  padding:14px 10px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.08);
+  cursor:pointer;transition:var(--transition);text-align:center;
+  background:rgba(255,255,255,.03);
+}
+.role-opt:hover{border-color:rgba(77,217,138,.3);background:rgba(45,184,102,.07)}
+.role-opt.sel{
+  border-color:var(--g400);background:rgba(45,184,102,.12);
+  box-shadow:0 0 0 3px rgba(45,184,102,.1);
+}
+.ri{font-size:24px;margin-bottom:6px}
+.rn{font-size:12px;font-weight:700;color:rgba(255,255,255,.85)}
+.rd{font-size:10px;color:rgba(255,255,255,.35);margin-top:3px}
+
+/* ══ APP SHELL ══ */
+#app{display:none;min-height:100vh;background:#F4FAF6}
+
+/* TOPBAR */
+.topbar{
+  background:linear-gradient(135deg,var(--g900) 0%,var(--g850) 100%);
+  border-bottom:1px solid rgba(77,217,138,.1);
+  padding:0 32px;display:flex;align-items:center;justify-content:space-between;
+  height:64px;position:sticky;top:0;z-index:100;
+  box-shadow:0 4px 24px rgba(4,15,8,.4);
+}
+.topbar::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(77,217,138,.4),rgba(201,168,76,.2),transparent);
+}
+
+.tbrand{display:flex;align-items:center;gap:12px}
+.ticon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--g600),var(--g400));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 2px 10px rgba(45,184,102,.3);flex-shrink:0;
+}
+.tlogo{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.tlogo em{color:var(--g300);font-style:italic}
+.tsub{
+  font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);margin-top:1px;
+}
+
+.tright{display:flex;align-items:center;gap:12px}
+
+.sync-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:99px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:rgba(255,255,255,.4);font-weight:500;
+}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--g300);flex-shrink:0;transition:.3s}
+.sdot.off{background:#FF6B6B}
+.sdot.ing{animation:sdot-pulse .9s infinite}
+@keyframes sdot-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.uchip{
+  display:flex;align-items:center;gap:9px;
+  padding:6px 14px 6px 6px;border-radius:99px;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  transition:var(--transition);
+}
+.uchip:hover{background:rgba(255,255,255,.13);border-color:rgba(77,217,138,.3)}
+.uav{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;font-family:'Playfair Display',serif;
+  flex-shrink:0;border:1px solid rgba(255,255,255,.1);
+}
+.uname{font-size:12px;color:rgba(255,255,255,.82);font-weight:500}
+.rtag{font-size:10px;padding:2px 9px;border-radius:99px;font-weight:700;letter-spacing:.4px}
+.rt-admin{background:rgba(201,168,76,.2);color:var(--gold-light);border:1px solid rgba(201,168,76,.2)}
+.rt-gerencia{background:rgba(92,46,154,.25);color:#C4AAEE;border:1px solid rgba(92,46,154,.2)}
+.rt-empleado{background:rgba(45,184,102,.2);color:var(--g200);border:1px solid rgba(45,184,102,.15)}
+
+.tbtn{
+  padding:8px 18px;border-radius:9px;font-size:12px;font-weight:700;
+  cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:var(--transition);
+}
+.tbtn-g{
+  background:linear-gradient(135deg,var(--g500),var(--g400));color:#fff;
+  box-shadow:0 2px 10px rgba(45,184,102,.3);
+}
+.tbtn-g:hover{box-shadow:0 4px 16px rgba(45,184,102,.45);transform:translateY(-1px)}
+.tbtn-ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.65)}
+.tbtn-ghost:hover{border-color:rgba(255,255,255,.45);color:#fff}
+
+/* NAV */
+.nav{
+  background:var(--g800);border-bottom:1px solid rgba(77,217,138,.08);
+  padding:0 32px;display:flex;gap:0;overflow-x:auto;
+}
+.ntab{
+  padding:15px 22px;font-size:12.5px;font-weight:500;
+  color:rgba(255,255,255,.45);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:var(--transition);white-space:nowrap;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  letter-spacing:.2px;
+}
+.ntab:hover{color:rgba(255,255,255,.8)}
+.ntab.active{
+  color:#fff;border-bottom-color:var(--g300);font-weight:600;
+  text-shadow:0 0 20px rgba(77,217,138,.3);
+}
+
+/* ══ CONTENT AREA ══ */
+.content{padding:32px;max-width:1200px}
+.view{display:none}
+.view.active{display:block;animation:view-in .32s cubic-bezier(.4,0,.2,1)}
+@keyframes view-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Section header */
+.sh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+.sh-t{
+  font-family:'Playfair Display',serif;font-size:26px;font-weight:700;
+  color:var(--ink);letter-spacing:-.3px;
+}
+.sh-s{font-size:13px;color:var(--ink3);margin-top:4px;font-weight:400}
+
+/* ══ PROJECT CARDS ══ */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:var(--r2);padding:24px;
+  position:relative;overflow:hidden;
+  transition:var(--transition);
+  box-shadow:var(--shadow-sm);
+}
+.card:hover{
+  border-color:var(--g400);
+  box-shadow:0 8px 32px rgba(13,46,26,.12),0 0 0 1px var(--g400);
+  transform:translateY(-3px);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--g500),var(--g300));
+  border-radius:var(--r2) var(--r2) 0 0;
+  transition:var(--transition);
+}
+.card:hover::before{
+  background:linear-gradient(90deg,var(--g400),var(--gold-light));
+}
+
+/* Card inner glow on hover */
+.card::after{
+  content:'';position:absolute;inset:0;border-radius:var(--r2);
+  background:radial-gradient(ellipse 60% 40% at 50% 0%, rgba(45,184,102,.04), transparent 60%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.card:hover::after{opacity:1}
+
+.cname{
+  font-family:'Playfair Display',serif;
+  font-size:16px;font-weight:700;color:var(--ink);
+  line-height:1.35;margin-bottom:8px;
+}
+.cdesc{font-size:12.5px;color:var(--ink3);line-height:1.65;margin-bottom:20px}
+.fl{
+  font-size:10px;font-weight:700;color:var(--ink3);
+  text-transform:uppercase;letter-spacing:.9px;margin-bottom:7px;
+}
+
+.csel{
+  width:100%;padding:10px 14px;border-radius:9px;
+  border:1.5px solid var(--border);
+  font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;appearance:none;outline:none;transition:var(--transition);
+  background:#fff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%232D5C3D' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  color:var(--ink);
+}
+.csel:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(36,138,80,.1)}
+
+.pbar-wrap{margin:16px 0 10px}
+.pbar-track{
+  height:8px;background:var(--surface3);border-radius:99px;overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.05);
+}
+.pbar-fill{
+  height:100%;border-radius:99px;
+  transition:width .6s cubic-bezier(.4,0,.2,1),background .4s;
+  position:relative;
+}
+.pbar-fill::after{
+  content:'';position:absolute;inset:0;border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shimmer 2s ease infinite;
+}
+@keyframes shimmer{
+  0%{transform:translateX(-100%)}100%{transform:translateX(200%)}
+}
+.pbar-row{display:flex;justify-content:space-between;margin-top:8px}
+.pbar-pct{font-size:14px;font-weight:700;font-family:'Playfair Display',serif}
+.pbar-hint{font-size:11px;color:var(--ink3)}
+
+.cta{
+  width:100%;padding:10px 14px;border-radius:9px;
+  border:1.5px solid var(--border);
+  font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;
+  resize:vertical;min-height:68px;color:var(--ink);
+  outline:none;transition:var(--transition);background:#fff;
+  line-height:1.6;
+}
+.cta:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(36,138,80,.08)}
+.cta::placeholder{color:#A8C4B0}
+
+.cfoot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--border2)}
+.cts{font-size:11px;color:#B0C8B8}
+
+.sbtn{
+  padding:9px 20px;
+  background:linear-gradient(135deg,var(--g500),var(--g400));
+  color:#fff;border:none;border-radius:9px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  box-shadow:0 2px 10px rgba(36,138,80,.3);
+  transition:var(--transition);
+}
+.sbtn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(36,138,80,.4)}
+.sbtn.ok{background:linear-gradient(135deg,var(--g700),var(--g600))}
+.sbtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ══ BITÁCORA ══ */
+.lform{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r2);padding:28px;margin-bottom:24px;
+  box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.lform::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--g400),var(--gold),var(--g300));
+}
+.lform-t{
+  font-family:'Playfair Display',serif;font-size:18px;font-weight:700;
+  color:var(--ink);margin-bottom:20px;display:flex;align-items:center;gap:10px;
+}
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.lta{
+  width:100%;padding:11px 14px;border-radius:9px;
+  border:1.5px solid var(--border);font-size:13px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  resize:vertical;min-height:88px;color:var(--ink);
+  outline:none;transition:var(--transition);background:#fff;line-height:1.6;
+}
+.lta:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(36,138,80,.08)}
+.lta::placeholder{color:#A8C4B0}
+
+.mrow{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.mbtn{
+  padding:9px 16px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--surface2);
+  cursor:pointer;font-size:16px;transition:var(--transition);line-height:1;
+}
+.mbtn:hover{border-color:var(--g400);background:var(--g50);transform:scale(1.08) translateY(-2px)}
+.mbtn.active{border-color:var(--g400);background:var(--g50);box-shadow:0 4px 12px rgba(36,138,80,.15)}
+
+.lsubmit{
+  padding:12px 28px;
+  background:linear-gradient(135deg,var(--g500),var(--g400));
+  color:#fff;border:none;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  box-shadow:0 4px 16px rgba(36,138,80,.3);
+  transition:var(--transition);
+}
+.lsubmit:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(36,138,80,.4)}
+.lsubmit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.lentries{display:flex;flex-direction:column;gap:14px}
+.lentry{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px 22px;
+  border-left:4px solid var(--g400);
+  box-shadow:var(--shadow-sm);
+  transition:var(--transition);
+  animation:entry-in .3s ease;
+}
+@keyframes entry-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.lentry:hover{box-shadow:var(--shadow);border-left-color:var(--gold)}
+
+.leh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
+.lauthor{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--ink)}
+.ldtag{
+  font-size:11px;color:var(--ink3);background:var(--surface2);
+  padding:4px 11px;border-radius:99px;border:1px solid var(--border);font-weight:500;
+}
+.lsec{margin-bottom:10px}
+.lsec:last-child{margin-bottom:0}
+.lslbl{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--ink3);margin-bottom:4px;
+}
+.lstxt{font-size:13px;color:var(--ink2);line-height:1.6}
+
+/* ══ SUMMARY CARDS ══ */
+.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.sc{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r2);padding:22px;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  transition:var(--transition);
+}
+.sc:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.sc-bg{
+  position:absolute;bottom:-24px;right:-24px;
+  width:100px;height:100px;border-radius:50%;
+  background:radial-gradient(circle,var(--g100),transparent 70%);
+  opacity:.6;pointer-events:none;
+}
+.sc-n{
+  font-family:'Playfair Display',serif;
+  font-size:34px;font-weight:700;position:relative;
+  background:linear-gradient(135deg,var(--g600),var(--g400));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.sc-l{font-size:11px;color:var(--ink3);margin-top:5px;font-weight:600;letter-spacing:.3px;position:relative}
+
+/* ══ READ-ONLY NOTICE ══ */
+.ro-notice{
+  background:linear-gradient(135deg,var(--g50),#fff);
+  border:1px solid var(--g100);border-radius:10px;
+  padding:12px 18px;font-size:13px;color:var(--g700);
+  margin-bottom:22px;display:flex;align-items:center;gap:10px;font-weight:500;
+  box-shadow:var(--shadow-sm);
+}
+
+/* ══ TABLE ══ */
+.twrap{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow);
+}
+.ttbl{width:100%;border-collapse:collapse;font-size:13px}
+.ttbl thead tr{
+  background:linear-gradient(135deg,var(--g900),var(--g800));
+}
+.ttbl th{
+  color:rgba(255,255,255,.75);padding:14px 16px;text-align:left;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+}
+.ttbl td{padding:14px 16px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.ttbl tr:last-child td{border-bottom:none}
+.ttbl tbody tr{transition:background .15s}
+.ttbl tbody tr:hover td{background:var(--g50)}
+
+.mbar{height:5px;background:var(--surface3);border-radius:99px;overflow:hidden;margin-top:6px;width:80px}
+.mfill{height:100%;border-radius:99px}
+
+/* Badges */
+.badge{display:inline-block;padding:4px 11px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.2px}
+.bg{background:var(--g50);color:var(--g700);border:1px solid var(--g100)}
+.bb{background:var(--blue-bg);color:var(--blue);border:1px solid #C8DDF5}
+.bo{background:var(--orange-bg);color:var(--orange);border:1px solid #F5D5BC}
+.br{background:var(--red-bg);color:var(--red);border:1px solid #F5C5C5}
+.bx{background:var(--surface3);color:var(--ink3);border:1px solid var(--border)}
+.bp{background:var(--purple-bg);color:var(--purple);border:1px solid #D8C8F5}
+
+/* ══ USERS ══ */
+.ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.ucard{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:var(--shadow-sm);transition:var(--transition);
+}
+.ucard:hover{box-shadow:var(--shadow);border-color:var(--g200);transform:translateY(-1px)}
+.uav2{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:17px;font-weight:700;flex-shrink:0;
+  border:2px solid rgba(0,0,0,.05);
+}
+.un{font-weight:700;font-size:14px;color:var(--ink);font-family:'Playfair Display',serif}
+.um{font-size:11px;color:var(--ink3);margin-top:3px;font-weight:500}
+.dbtn{
+  margin-left:auto;padding:6px 12px;
+  background:var(--red-bg);color:var(--red);
+  border:1px solid #F0C0C0;border-radius:8px;
+  font-size:11px;cursor:pointer;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;transition:var(--transition);flex-shrink:0;
+}
+.dbtn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ══ GENERIC BUTTONS ══ */
+.btn{
+  padding:10px 22px;border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;border:none;transition:var(--transition);
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.btn-g{
+  background:linear-gradient(135deg,var(--g500),var(--g400));color:#fff;
+  box-shadow:0 2px 10px rgba(36,138,80,.28);
+}
+.btn-g:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(36,138,80,.4)}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink3)}
+.btn-outline:hover{border-color:var(--g400);color:var(--g600)}
+
+.empty{text-align:center;padding:56px 24px;color:var(--ink3);font-size:14px}
+.eicon{font-size:40px;margin-bottom:14px;opacity:.6}
+
+/* ══ TOAST ══ */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:linear-gradient(135deg,var(--g850),var(--g800));
+  color:#fff;padding:13px 22px;border-radius:12px;
+  font-size:13px;font-weight:500;z-index:9999;
+  opacity:0;transform:translateY(10px) scale(.96);transition:.35s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+  border:1px solid rgba(77,217,138,.2);
+  box-shadow:0 12px 32px rgba(4,15,8,.4);
+}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+
+/* ══ FOOTER ══ */
+footer{
+  background:var(--g900) !important;
+  border-top:1px solid rgba(77,217,138,.1) !important;
+  padding:20px 28px !important;
+  position:relative;overflow:hidden;
+}
+footer::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(77,217,138,.35),rgba(201,168,76,.2),transparent);
+}
+footer .footer-inner{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;
+  color:rgba(255,255,255,.3);
+}
+footer .footer-sep{color:rgba(255,255,255,.12)}
+footer .footer-name{
+  font-family:'Playfair Display',serif;font-style:italic;
+  color:var(--g300);font-size:13px;font-weight:600;
+}
+footer .footer-brand{color:rgba(255,255,255,.25);font-size:11px;letter-spacing:.5px}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--g200);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--g300)}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:768px){
+  .content{padding:18px}
+  .topbar,.nav{padding:0 16px}
+  .srow{grid-template-columns:repeat(2,1fr)}
+  .lgrid{grid-template-columns:1fr}
+  .lbox{padding:36px 28px}
+  footer .footer-inner{flex-direction:column;gap:6px}
+}
+
+/* ══ TRANSITIONS for page ══ */
+.view.active .card{
+  animation:card-in .4s cubic-bezier(.4,0,.2,1) both;
+}
+.view.active .card:nth-child(1){animation-delay:.05s}
+.view.active .card:nth-child(2){animation-delay:.10s}
+.view.active .card:nth-child(3){animation-delay:.15s}
+.view.active .card:nth-child(4){animation-delay:.20s}
+@keyframes card-in{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-emblem">🌿</div>
+  <div class="splash-wordmark">Inver<em>Work</em></div>
+  <div class="splash-tagline">Inverfin Holding</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  <div class="splash-status" id="splash-status">Conectando con Firebase…</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
+  <div class="lbox">
+    <div class="lbox-glow"></div>
+    <div class="lbrand">
+      <div class="licon">🌿</div>
+      <div><div class="llogo">Inver<span>Work</span></div></div>
+    </div>
+    <div class="lcompany">Inverfin Holding · Gestión de Proyectos</div>
+
+    <div id="lf">
+      <div class="llbl">Usuario</div>
+      <input class="linput" id="li-u" placeholder="Tu nombre de usuario" autocomplete="off">
+      <div class="llbl">Contraseña</div>
+      <input class="linput" id="li-p" type="password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="lbtn" id="li-btn" onclick="doLogin()">Ingresar a InverWork →</button>
+      <div class="lerr" id="li-e"></div>
+      <hr class="ldiv">
+      <div class="llink">¿Primera vez? <span onclick="showReg()">Crear cuenta</span></div>
+    </div>
+
+    <div id="rf" style="display:none">
+      <div class="llbl">Nombre completo</div>
+      <input class="linput" id="rg-n" placeholder="Ej. María González">
+      <div class="llbl">Contraseña</div>
+      <input class="linput" id="rg-p" type="password" placeholder="Mínimo 4 caracteres">
+      <div class="llbl" style="margin-bottom:10px">Tu rol en Inverfin</div>
+      <div class="role-grid">
+        <div class="role-opt" onclick="pickRole('empleado',this)">
+          <div class="ri">🧑‍💼</div><div class="rn">Empleado</div><div class="rd">Actualizo mis proyectos</div>
+        </div>
+        <div class="role-opt" onclick="pickRole('gerencia',this)">
+          <div class="ri">👔</div><div class="rn">Gerencia</div><div class="rd">Requiere código</div>
+        </div>
+      </div>
+      <div id="code-wrap" style="display:none">
+        <div class="llbl">Código de gerencia</div>
+        <input class="linput" id="rg-c" placeholder="Código confidencial">
+      </div>
+      <button class="lbtn" id="rg-btn" onclick="doRegister()">Crear cuenta →</button>
+      <div class="lerr" id="rg-e"></div>
+      <hr class="ldiv">
+      <div class="llink">¿Ya tienes cuenta? <span onclick="showLogin()">Iniciar sesión</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="tbrand">
+      <div class="ticon">🌿</div>
+      <div><div class="tlogo">Inver<span>Work</span></div><div class="tsub">INVERFIN HOLDING</div></div>
+    </div>
+    <div class="tright">
+      <div class="sync"><div class="sdot" id="sdot"></div><span id="stext">En vivo</span></div>
+      <div class="uchip" onclick="logout()">
+        <div class="uav" id="top-av"></div>
+        <span class="uname" id="top-name"></span>
+        <span class="rtag" id="top-role"></span>
+      </div>
+      <button class="tbtn tbtn-g" id="btn-excel" style="display:none" onclick="exportExcel()">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="nav" id="main-nav"></div>
+  <div class="content">
+    <!-- MIS PROYECTOS -->
+    <div class="view" id="view-myprojects">
+      <div class="sh"><div><div class="sh-t">Mis Proyectos</div>
+        <div class="sh-s">Actualiza el estado de tus proyectos — se guarda en tiempo real</div></div></div>
+      <div class="cgrid" id="my-grid"></div>
+    </div>
+    <!-- BITÁCORA -->
+    <div class="view" id="view-log">
+      <div class="sh"><div><div class="sh-t">Mi Bitácora Diaria</div>
+        <div class="sh-s">Registra qué hiciste hoy, dificultades y cómo fue tu jornada</div></div></div>
+      <div class="lform">
+        <div class="lform-t">📝 Entrada de hoy — <span id="today-date" style="font-weight:400;font-size:14px;color:var(--ink3)"></span></div>
+        <div class="lgrid">
+          <div><div class="fl">¿Qué hice hoy?</div>
+            <textarea class="lta" id="l-done" placeholder="Actividades, reuniones, avances..."></textarea></div>
+          <div><div class="fl">Dificultades / bloqueos</div>
+            <textarea class="lta" id="l-iss" placeholder="Problemas, pendientes..."></textarea></div>
+        </div>
+        <div style="margin-bottom:14px"><div class="fl">Notas adicionales</div>
+          <textarea class="lta" id="l-notes" placeholder="Ideas, aprendizajes, próximos pasos..." style="min-height:52px"></textarea></div>
+        <div style="margin-bottom:18px"><div class="fl">¿Cómo fue tu jornada?</div>
+          <div class="mrow">
+            <button class="mbtn" onclick="pickMood('😄',this)">😄</button>
+            <button class="mbtn" onclick="pickMood('🙂',this)">🙂</button>
+            <button class="mbtn" onclick="pickMood('😐',this)">😐</button>
+            <button class="mbtn" onclick="pickMood('😓',this)">😓</button>
+            <button class="mbtn" onclick="pickMood('🔥',this)">🔥</button>
+            <button class="mbtn" onclick="pickMood('💡',this)">💡</button>
+          </div>
+        </div>
+        <button class="lsubmit" id="log-btn" onclick="submitLog()">Guardar entrada del día</button>
+      </div>
+      <div class="fl" style="margin-bottom:12px">Mis entradas anteriores</div>
+      <div id="my-log" class="lentries"></div>
+    </div>
+    <!-- OVERVIEW -->
+    <div class="view" id="view-overview">
+      <div class="sh"><div><div class="sh-t">Vista General de Proyectos</div>
+          <div class="sh-s">Estado en tiempo real de todos los proyectos del equipo</div></div>
+        <button class="btn btn-g" id="ov-excel" style="display:none" onclick="exportExcel()">⬇ Excel</button></div>
+      <div id="ro-notice" class="ro-notice" style="display:none">👁️ Modo lectura — puedes consultar pero no editar</div>
+      <div class="srow" id="srow"></div>
+      <div class="twrap"><table class="ttbl"><thead><tr>
+        <th>Proyecto</th><th>Empleado</th><th>Estado</th><th>Avance</th><th>Observaciones</th><th>Actualizado</th>
+      </tr></thead><tbody id="ov-body"></tbody></table></div>
+    </div>
+    <!-- BITÁCORAS EQUIPO -->
+    <div class="view" id="view-teamlog">
+      <div class="sh"><div><div class="sh-t">Bitácoras del Equipo</div>
+        <div class="sh-s">Entradas diarias de todos los colaboradores en tiempo real</div></div></div>
+      <div id="team-log" class="lentries"></div>
+    </div>
+    <!-- USUARIOS -->
+    <div class="view" id="view-users">
+      <div class="sh"><div><div class="sh-t">Gestión de Usuarios</div>
+        <div class="sh-s">Usuarios registrados en InverWork · Inverfin Holding</div></div></div>
+      <div class="ugrid" id="ugrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-brand">INVERWORK · INVERFIN HOLDING</span>
+    <span class="footer-sep">◆</span>
+    <span>Owned by</span>
+    <span class="footer-name">Jesús Santiago</span>
+    <span class="footer-sep">◆</span>
+    <span class="footer-brand">© 2025 · TODOS LOS DERECHOS RESERVADOS</span>
+  </div>
+</footer>
+
+<script>
+// ══ CONSTANTS ══
+const GERENCIA_CODE = 'inverfin2025';
+const ADMIN_USER = {name:'Administrador',username:'admin',password:'inverfin2025',role:'admin'};
+const PDEFS = [
+  {id:'p1',name:'Fintech – Chicas en la Tecnología',
+   desc:'Programa de desarrollo tecnológico y participación en proyectos fintech.',start:'2 Feb 2025',end:'Mayo 2025'},
+  {id:'p2',name:'Proyecto La Poste',
+   desc:'Desarrollo y consolidación de solución tecnológica vinculada al programa Fintech.',start:'En evolución',end:'Por definir'},
+  {id:'p3',name:'E-commerce / Dropshipping',
+   desc:'Iniciativa de comercio electrónico: modelo de negocio, documentación y flujo operativo.',start:'Interno',end:'En evolución'},
+  {id:'p4',name:'Plataforma Agrícola',
+   desc:'Plataforma que conecta proveedores agrícolas con compradores vía Inverfin.',start:'Interno',end:'En evolución'},
+];
+const SM = {
+  'No iniciado':   {pct:0,   c:'#78909C',b:'bx'},
+  'Planificación': {pct:.10, c:'#6C3483',b:'bp'},
+  'En curso':      {pct:.40, c:'#22A05F',b:'bg'},
+  'En desarrollo': {pct:.55, c:'#1A5E9A',b:'bb'},
+  'Fase crítica':  {pct:.65, c:'#D35400',b:'bo'},
+  'Avanzado':      {pct:.75, c:'#155C38',b:'bg'},
+  'Casi listo':    {pct:.90, c:'#22A05F',b:'bg'},
+  'Completado':    {pct:1.0, c:'#0F4228',b:'bg'},
+  'Bloqueado':     {pct:0,   c:'#C0392B',b:'br'},
+};
+
+// ══ STATE ══
+let me = null;
+let fbReady = false;
+let chosenRole = 'empleado';
+let chosenMood = '';
+
+// ══ FIREBASE WAIT ══
+function waitForDB(fn){
+  if(fbReady && window.DB) fn();
+  else window.addEventListener('firebase-ready', fn, {once:true});
+}
+
+window.addEventListener('firebase-ready', () => {
+  fbReady = true;
+  document.getElementById('splash-status').textContent = 'Listo ✓';
+  setSynced(true);
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    const stored = localStorage.getItem('iw_session');
+    if(stored){
+      try{
+        me = JSON.parse(stored);
+        bootApp();
+      } catch{ showLoginScreen(); }
+    } else { showLoginScreen(); }
+  }, 600);
+});
+
+// Fallback: if Firebase fails to load after 6s
+setTimeout(() => {
+  if(!fbReady){
+    document.getElementById('splash-status').textContent = '⚠️ Sin conexión — verifica la config de Firebase';
+    setSynced(false);
+  }
+}, 6000);
+
+function setSynced(ok){
+  const d=document.getElementById('sdot'), t=document.getElementById('stext');
+  if(!d) return;
+  d.className='sdot'+(ok?'':' off');
+  if(t) t.textContent = ok ? 'En vivo' : 'Sin conexión';
+}
+function setSyncing(){
+  const d=document.getElementById('sdot');
+  if(d){ d.className='sdot ing'; }
+}
+
+// ══ LOGIN / REGISTER ══
+function showLoginScreen(){
+  document.getElementById('login-screen').classList.add('show');
+}
+function showReg(){ document.getElementById('lf').style.display='none'; document.getElementById('rf').style.display='block'; }
+function showLogin(){ document.getElementById('rf').style.display='none'; document.getElementById('lf').style.display='block'; }
+function pickRole(r, el){
+  chosenRole=r;
+  document.querySelectorAll('.role-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('code-wrap').style.display=r==='gerencia'?'block':'none';
+}
+
+async function doLogin(){
+  const username = document.getElementById('li-u').value.trim().toLowerCase();
+  const password = document.getElementById('li-p').value;
+  const btn = document.getElementById('li-btn');
+  if(!username||!password){ document.getElementById('li-e').textContent='Completa todos los campos.'; return; }
+  btn.disabled=true; btn.textContent='Verificando...';
+  try{
+    // Check admin hardcoded first
+    if(username==='admin' && password===ADMIN_USER.password){
+      me = ADMIN_USER; finishLogin(); return;
+    }
+    const users = await window.DB.getUsers();
+    const found = Object.values(users).find(u=>u.username.toLowerCase()===username && u.password===password);
+    if(!found){ document.getElementById('li-e').textContent='Usuario o contraseña incorrectos.'; return; }
+    me = found; finishLogin();
+  } catch(e){
+    document.getElementById('li-e').textContent='Error de conexión con Firebase.';
+  } finally{ btn.disabled=false; btn.textContent='Ingresar a InverWork →'; }
+}
+
+async function doRegister(){
+  const name = document.getElementById('rg-n').value.trim();
+  const pass = document.getElementById('rg-p').value;
+  const code = document.getElementById('rg-c').value;
+  const btn  = document.getElementById('rg-btn');
+  const err  = document.getElementById('rg-e');
+  if(!name||pass.length<4){ err.textContent='Nombre requerido y contraseña de al menos 4 caracteres.'; return; }
+  if(chosenRole==='gerencia' && code!==GERENCIA_CODE){ err.textContent='Código de gerencia incorrecto.'; return; }
+  btn.disabled=true; btn.textContent='Registrando...';
+  try{
+    const users = await window.DB.getUsers();
+    const username = name.toLowerCase().replace(/\s+/g,'.');
+    if(Object.values(users).find(u=>u.username===username)){ err.textContent='Ya existe ese usuario.'; return; }
+    const nu = {name, username, password:pass, role:chosenRole};
+    await window.DB.setUser(username, nu);
+    me = nu; finishLogin();
+  } catch(e){ err.textContent='Error al guardar. Revisa la conexión.'; }
+  finally{ btn.disabled=false; btn.textContent='Crear cuenta →'; }
+}
+
+function finishLogin(){
+  localStorage.setItem('iw_session', JSON.stringify(me));
+  document.getElementById('login-screen').classList.remove('show');
+  bootApp();
+}
+
+function logout(){
+  localStorage.removeItem('iw_session');
+  me=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').classList.add('show');
+  document.getElementById('li-u').value='';
+  document.getElementById('li-p').value='';
+  document.getElementById('li-e').textContent='';
+  showLogin();
+}
+
+// ══ BOOT ══
+function bootApp(){
+  document.getElementById('app').style.display='block';
+  const rc={admin:{bg:'rgba(34,160,95,.25)',fg:'#6EDFA6'},
+    gerencia:{bg:'rgba(108,52,131,.25)',fg:'#D4AAFF'},
+    empleado:{bg:'rgba(26,94,154,.25)',fg:'#A3CFFF'}};
+  const c=rc[me.role]||rc.empleado;
+  const av=document.getElementById('top-av');
+  av.textContent=me.name.charAt(0).toUpperCase();
+  av.style.background=c.bg; av.style.color=c.fg;
+  document.getElementById('top-name').textContent=me.name;
+  const rt=document.getElementById('top-role');
+  rt.textContent={admin:'Admin',gerencia:'Gerencia',empleado:'Empleado'}[me.role];
+  rt.className='rtag rt-'+me.role;
+  document.getElementById('btn-excel').style.display=me.role==='admin'?'block':'none';
+  document.getElementById('today-date').textContent=
+    new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  buildNav(); renderDefault();
+  // real-time listeners
+  window.DB.onProjects(pd => { projCache=pd; if(activeView==='overview')renderOverview(); if(activeView==='myprojects')renderMyProjects(); });
+  window.DB.onLogs(logs => { logsCache=logs; if(activeView==='log')renderMyLog(); if(activeView==='teamlog')renderTeamLog(); });
+}
+
+// ══ NAV ══
+const NAVMAP = {
+  admin:    [{id:'overview',l:'📊 Proyectos',v:'view-overview'},
+             {id:'teamlog', l:'📓 Bitácoras',v:'view-teamlog'},
+             {id:'users',   l:'👥 Usuarios', v:'view-users'}],
+  gerencia: [{id:'overview',l:'📊 Proyectos',v:'view-overview'},
+             {id:'teamlog', l:'📓 Bitácoras',v:'view-teamlog'}],
+  empleado: [{id:'myprojects',l:'🗂 Mis Proyectos',v:'view-myprojects'},
+             {id:'log',      l:'📝 Mi Bitácora',   v:'view-log'}],
+};
+let activeView='';
+let projCache={}, logsCache=[];
+
+function buildNav(){
+  const nav=document.getElementById('main-nav'); nav.innerHTML='';
+  (NAVMAP[me.role]||NAVMAP.empleado).forEach(t=>{
+    const el=document.createElement('div');
+    el.className='ntab'; el.id='ntab-'+t.id; el.textContent=t.l;
+    el.onclick=()=>goTo(t); nav.appendChild(el);
+  });
+}
+function goTo(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tab.v).classList.add('active');
+  document.getElementById('ntab-'+tab.id).classList.add('active');
+  activeView=tab.id;
+  if(tab.id==='myprojects')renderMyProjects();
+  if(tab.id==='log')renderMyLog();
+  if(tab.id==='overview')renderOverview();
+  if(tab.id==='teamlog')renderTeamLog();
+  if(tab.id==='users')renderUsers();
+}
+function renderDefault(){ const t=NAVMAP[me.role]; if(t&&t.length)goTo(t[0]); }
+
+// ══ MY PROJECTS ══
+function renderMyProjects(){
+  const grid=document.getElementById('my-grid'); grid.innerHTML='';
+  PDEFS.forEach(p=>{
+    const key=`${me.username}__${p.id}`;
+    const e=projCache[key]||{status:'No iniciado',pct:0,notes:'',updatedAt:'—'};
+    const info=SM[e.status]||SM['No iniciado'];
+    const pct=Math.round((e.pct??info.pct)*100);
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="cstripe" style="background:${info.c}"></div>
+      <div class="cname">${p.name}</div>
+      <div class="cdesc">${p.desc}</div>
+      <div class="fl">Estado del proyecto</div>
+      <select class="csel" id="sel-${p.id}" onchange="onSel('${p.id}')">
+        ${Object.keys(SM).map(s=>`<option value="${s}"${s===e.status?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <div class="pbar-wrap">
+        <div class="pbar-track"><div class="pbar-fill" id="bar-${p.id}" style="width:${pct}%;background:${info.c}"></div></div>
+        <div class="pbar-row">
+          <div class="pbar-pct" id="pct-${p.id}" style="color:${info.c}">${pct}%</div>
+          <div class="pbar-hint">${p.start} → ${p.end}</div>
+        </div>
+      </div>
+      <div class="fl" style="margin-top:10px">Observaciones</div>
+      <textarea class="cta" id="notes-${p.id}" placeholder="Avances, bloqueos...">${e.notes||''}</textarea>
+      <div class="cfoot">
+        <div class="cts" id="ts-${p.id}">${e.updatedAt!=='—'?'Guardado: '+e.updatedAt:'Sin actualizar'}</div>
+        <button class="sbtn" id="sb-${p.id}" onclick="saveProject('${p.id}')">Guardar</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+function onSel(pid){
+  const s=document.getElementById(`sel-${pid}`).value;
+  const info=SM[s]||SM['No iniciado'];
+  const pct=Math.round((info.pct||0)*100);
+  document.getElementById(`bar-${pid}`).style.cssText=`width:${pct}%;background:${info.c}`;
+  document.getElementById(`pct-${pid}`).textContent=pct+'%';
+  document.getElementById(`pct-${pid}`).style.color=info.c;
+}
+async function saveProject(pid){
+  const btn=document.getElementById(`sb-${pid}`);
+  btn.textContent='Guardando...'; btn.disabled=true;
+  const status=document.getElementById(`sel-${pid}`).value;
+  const notes=document.getElementById(`notes-${pid}`).value;
+  const info=SM[status]||SM['No iniciado'];
+  const now=new Date().toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  const key=`${me.username}__${pid}`;
+  setSyncing();
+  try{
+    await window.DB.setProject(key,{status,pct:info.pct||0,notes,updatedBy:me.name,updatedAt:now});
+    projCache[key]={status,pct:info.pct||0,notes,updatedBy:me.name,updatedAt:now};
+    document.getElementById(`ts-${pid}`).textContent='Guardado: '+now;
+    btn.textContent='✓ Guardado'; btn.classList.add('ok');
+    setSynced(true); showToast('✓ Proyecto actualizado en Firebase');
+  } catch(e){ btn.textContent='✗ Error'; showToast('⚠️ Error al guardar'); setSynced(false); }
+  finally{ btn.disabled=false; setTimeout(()=>{btn.textContent='Guardar';btn.classList.remove('ok')},2200); }
+}
+
+// ══ BITÁCORA ══
+function pickMood(m,el){
+  chosenMood=m;
+  document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+async function submitLog(){
+  const done=document.getElementById('l-done').value.trim();
+  const iss=document.getElementById('l-iss').value.trim();
+  const notes=document.getElementById('l-notes').value.trim();
+  if(!done){ showToast('⚠️ Escribe al menos qué hiciste hoy'); return; }
+  const btn=document.getElementById('log-btn'); btn.disabled=true; btn.textContent='Guardando...';
+  setSyncing();
+  try{
+    await window.DB.addLog({
+      user:me.name, username:me.username,
+      date:new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),
+      ts:new Date().toISOString(), done, issues:iss, notes, mood:chosenMood
+    });
+    ['l-done','l-iss','l-notes'].forEach(id=>document.getElementById(id).value='');
+    chosenMood=''; document.querySelectorAll('.mbtn').forEach(b=>b.classList.remove('active'));
+    setSynced(true); showToast('✓ Bitácora guardada');
+  } catch(e){ showToast('⚠️ Error al guardar'); setSynced(false); }
+  finally{ btn.disabled=false; btn.textContent='Guardar entrada del día'; }
+}
+
+function logCard(l, showAuthor=false){
+  return `<div class="lentry">
+    <div class="leh">
+      <div class="lauthor">${l.mood||'📋'} ${showAuthor?'<strong>'+l.user+'</strong> — ':''}<span style="font-weight:${showAuthor?400:700}">${l.date}</span></div>
+      <div class="ldtag">${new Date(l.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    ${l.done?`<div class="lsec"><div class="lslbl">✅ Hizo hoy</div><div class="lstxt">${l.done}</div></div>`:''}
+    ${l.issues?`<div class="lsec"><div class="lslbl">⚠️ Dificultades</div><div class="lstxt">${l.issues}</div></div>`:''}
+    ${l.notes?`<div class="lsec"><div class="lslbl">💡 Notas</div><div class="lstxt">${l.notes}</div></div>`:''}
+  </div>`;
+}
+function renderMyLog(){
+  const el=document.getElementById('my-log');
+  const logs=logsCache.filter(l=>l.username===me.username);
+  el.innerHTML=logs.length?logs.slice(0,25).map(l=>logCard(l)).join('')
+    :`<div class="empty"><div class="eicon">📓</div>Aún no tienes entradas. ¡Escribe la primera!</div>`;
+}
+function renderTeamLog(){
+  const el=document.getElementById('team-log');
+  el.innerHTML=logsCache.length?logsCache.slice(0,60).map(l=>logCard(l,true)).join('')
+    :`<div class="empty"><div class="eicon">📓</div>Aún no hay entradas del equipo.</div>`;
+}
+
+// ══ OVERVIEW ══
+function renderOverview(){
+  document.getElementById('ov-excel').style.display=me.role==='admin'?'block':'none';
+  document.getElementById('ro-notice').style.display=me.role==='gerencia'?'flex':'none';
+  const employees=Object.values(projCache);
+  // build rows from projCache
+  const allKeys=Object.keys(projCache);
+  const userSet={};
+  allKeys.forEach(k=>{ const [u]=k.split('__'); if(u) userSet[u]=true; });
+  const usernames=Object.keys(userSet);
+  let total=0,completed=0,inProg=0,sumPct=0,rows=[];
+  usernames.forEach(username=>{
+    PDEFS.forEach(p=>{
+      const key=`${username}__${p.id}`;
+      const e=projCache[key]||{status:'No iniciado',pct:0,notes:'',updatedAt:'—',updatedBy:username};
+      const info=SM[e.status]||SM['No iniciado'];
+      total++; sumPct+=(e.pct||0);
+      if(e.status==='Completado')completed++;
+      if(['En curso','En desarrollo','Avanzado','Casi listo'].includes(e.status))inProg++;
+      rows.push({p,e,info,owner:e.updatedBy||username});
+    });
+  });
+  const avg=total?Math.round(sumPct/total*100):0;
+  document.getElementById('srow').innerHTML=`
+    <div class="sc"><div class="sc-n" style="color:var(--accent)">${total}</div><div class="sc-l">Total proyectos</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--g700)">${completed}</div><div class="sc-l">Completados</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--orange)">${inProg}</div><div class="sc-l">En progreso</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--accent)">${avg}%</div><div class="sc-l">Avance promedio</div></div>`;
+  const tbody=document.getElementById('ov-body');
+  tbody.innerHTML=rows.length?rows.map(({p,e,info,owner})=>{
+    const pct=Math.round((e.pct||0)*100);
+    return `<tr>
+      <td><strong style="font-family:'Syne',sans-serif">${p.name}</strong></td>
+      <td>${owner}</td>
+      <td><span class="badge ${info.b}">${e.status}</span></td>
+      <td><strong style="color:${info.c}">${pct}%</strong>
+        <div class="mbar"><div class="mfill" style="width:${pct}%;background:${info.c}"></div></div></td>
+      <td style="max-width:200px;font-size:12px;color:var(--ink3)">${e.notes||'—'}</td>
+      <td style="font-size:11px;color:var(--ink3)">${e.updatedAt||'—'}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="6" class="empty">No hay proyectos registrados aún</td></tr>`;
+}
+
+// ══ USERS ══
+async function renderUsers(){
+  const grid=document.getElementById('ugrid');
+  grid.innerHTML=`<div style="padding:20px;color:var(--ink3);font-size:13px">Cargando usuarios...</div>`;
+  try{
+    const users=await window.DB.getUsers();
+    const all=[ADMIN_USER,...Object.values(users).filter(u=>u.username!=='admin')];
+    const rc={admin:{bg:'rgba(34,160,95,.15)',fg:'#155C38'},
+      gerencia:{bg:'rgba(108,52,131,.12)',fg:'#6C3483'},
+      empleado:{bg:'rgba(26,94,154,.12)',fg:'#1A5E9A'}};
+    grid.innerHTML=all.map(u=>{
+      const c=rc[u.role]||rc.empleado;
+      return `<div class="ucard">
+        <div class="uav2" style="background:${c.bg};color:${c.fg}">${u.name.charAt(0).toUpperCase()}</div>
+        <div><div class="un">${u.name}</div><div class="um">@${u.username} · ${u.role}</div></div>
+        ${u.username!=='admin'?`<button class="dbtn" onclick="delUser('${u.username}')">Eliminar</button>`:''}
+      </div>`;
+    }).join('');
+  } catch(e){ grid.innerHTML=`<div style="color:var(--red);padding:20px">Error al cargar usuarios</div>`; }
+}
+async function delUser(username){
+  if(!confirm(`¿Eliminar usuario @${username}?`))return;
+  try{ await window.DB.delUser(username); renderUsers(); showToast('Usuario eliminado'); }
+  catch(e){ showToast('⚠️ Error al eliminar'); }
+}
+
+// ══ EXPORT ══
+async function exportExcel(){
+  showToast('Preparando Excel...');
+  const wb=XLSX.utils.book_new();
+  // Sheet 1
+  const r1=[['Empleado','Proyecto','Estado','Avance %','Observaciones','Última actualización']];
+  const keys=Object.keys(projCache);
+  const users={};
+  keys.forEach(k=>{ const [u]=k.split('__'); users[u]=true; });
+  Object.keys(users).forEach(u=>PDEFS.forEach(p=>{
+    const e=projCache[`${u}__${p.id}`]||{status:'No iniciado',pct:0,notes:'',updatedAt:'—'};
+    r1.push([e.updatedBy||u,p.name,e.status,Math.round((e.pct||0)*100)+'%',e.notes||'—',e.updatedAt||'—']);
+  }));
+  const ws1=XLSX.utils.aoa_to_sheet(r1);
+  ws1['!cols']=[20,34,16,10,42,22].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws1,'Proyectos');
+  // Sheet 2
+  const allLogs=await window.DB.getLogs();
+  const r2=[['Empleado','Fecha','¿Qué hice?','Dificultades','Notas','Ánimo']];
+  allLogs.forEach(l=>r2.push([l.user,l.date,l.done||'',l.issues||'',l.notes||'',l.mood||'']));
+  const ws2=XLSX.utils.aoa_to_sheet(r2);
+  ws2['!cols']=[20,30,50,40,40,8].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Bitácoras');
+  const d=new Date().toLocaleDateString('es-ES').replace(/\//g,'-');
+  XLSX.writeFile(wb,`InverWork_Inverfin_${d}.xlsx`);
+  showToast('✓ Excel descargado — Proyectos + Bitácoras');
+}
+
+// ══ TOAST ══
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2700);
+}
+</script>
+</body>
+</html>
