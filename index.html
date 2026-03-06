@@ -438,9 +438,14 @@ const Projects=({user,projects,allTasks,openProj,setOpenProj})=>{
 
   const create=async()=>{
     if(!form.name.trim())return;
-    await window.DB.addProject({...form,ownerId:user.id,ownerName:user.name,createdAt:now(),progress:0});
-    setShowCreate(false);
-    setForm({name:'',description:'',startDate:'',endDate:'',status:'Activo'});
+    try{
+      const ref=await window.DB.addProject({...form,ownerId:user.id,ownerName:user.name,createdAt:now(),progress:0});
+      setShowCreate(false);
+      setForm({name:"",description:"",startDate:"",endDate:"",status:"Activo"});
+    }catch(e){
+      console.error('addProject error:',e);
+      alert("Error Firebase: "+e.message+"\n\nRevisa las reglas de la base de datos en Firebase Console (Database → Rules → .write: true)");
+    }
   };
 
   /* if a project is open show its detail */
@@ -563,7 +568,7 @@ const ProjectDetail=({user,pid,project,onBack})=>{
 
   const saveTask=async()=>{
     if(!tf.name.trim())return;
-    await window.DB.addTask(pid,{...tf,assignedTo:user.id,assignedName:user.name,timeSpent:0,createdAt:now()});
+    try{await window.DB.addTask(pid,{...tf,assignedTo:user.id,assignedName:user.name,timeSpent:0,createdAt:now()});
     setShowTask(false);stf({name:'',description:'',status:'Pendiente',timeEstimated:''});
   };
 
@@ -1114,16 +1119,15 @@ const App=()=>{
   },[]);
 
   useEffect(()=>{
-    if(!ready||!user)return;
-    const subs=[];
-    subs.push(window.DB.onProjects(d=>setProjects(d||{})));
-    subs.push(window.DB.onReports(d=>{const rd=d||{};setReports(rd);setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);}));
-    subs.push(window.DB.onUsers(d=>setUsers(d||{})));
+    if(!user)return;
+    if(!window.DB){const h=()=>{window.removeEventListener("firebase-ready",h);window.DB.onProjects(d=>setProjects(d||{}));window.DB.onReports(d=>{const rd=d||{};setReports(rd);setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);});window.DB.onUsers(d=>setUsers(d||{}));window.DB.snapTasks().then(d=>setAllTasks(d||{}));};window.addEventListener("firebase-ready",h);return()=>window.removeEventListener("firebase-ready",h);}
+    const s1=window.DB.onProjects(d=>setProjects(d||{}));
+    const s2=window.DB.onReports(d=>{const rd=d||{};setReports(rd);setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);});
+    const s3=window.DB.onUsers(d=>setUsers(d||{}));
     const loadT=()=>window.DB.snapTasks().then(d=>setAllTasks(d||{}));
-    loadT();
-    const iv=setInterval(loadT,8000);
-    return()=>{subs.forEach(u=>u());clearInterval(iv)};
-  },[ready,user]);
+    loadT();const iv=setInterval(loadT,8000);
+    return()=>{s1();s2();s3();clearInterval(iv)};
+  },[user]);
 
   const isAdmin=user?.role==='admin'||user?.role==='gerencia';
 
@@ -1137,7 +1141,7 @@ const App=()=>{
 
   const goTab=t=>{setTab(t);setOpenProj(null)};
 
-  const login=u=>{setUser(u);setTab((u.role==='admin'||u.role==='gerencia')?'overview':'dashboard')};
+  const login=u=>{setUser(u);setSynced(!!window.DB);setTab((u.role==='admin'||u.role==='gerencia')?'overview':'dashboard')};
   const logout=()=>{setUser(null);setTab('dashboard');setOpenProj(null)};
 
   if(splash)return <Splash/>;
