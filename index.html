@@ -9,10 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <script>
 tailwind.config={theme:{extend:{
-  fontFamily:{
-    garamond:['EB Garamond','Georgia','serif'],
-    sans:['Inter','system-ui','sans-serif']
-  },
+  fontFamily:{garamond:['EB Garamond','Georgia','serif'],sans:['Inter','system-ui','sans-serif']},
   colors:{
     ink:{DEFAULT:'#111111',light:'#444444',muted:'#888888',faint:'#bbbbbb'},
     paper:{DEFAULT:'#ffffff',warm:'#fafaf8',soft:'#f4f4f2',border:'#e4e4e0'},
@@ -22,64 +19,47 @@ tailwind.config={theme:{extend:{
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html,body,#root{height:100%}
 body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:#d4d4d0;border-radius:99px}
 ::-webkit-scrollbar-track{background:transparent}
 .garamond{font-family:'EB Garamond','Georgia',serif}
-@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-@keyframes scaleIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .2s ease both}
-.scale-in{animation:scaleIn .18s ease both}
+.modal-in{animation:modalIn .18s ease both}
 .spinner{animation:spin .7s linear infinite}
 input,textarea,select,button{font-family:inherit}
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-.line-clamp-1{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1}
-.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.clamp1{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1}
+.clamp2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 </style>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,set,get,push,onValue,remove,update}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-const cfg={
-  apiKey:"AIzaSyCVBfb-baz0rIN8s-rPhqSazMCF8u8JcM8",
-  authDomain:"inverwork-inverfin.firebaseapp.com",
-  databaseURL:"https://inverwork-inverfin-default-rtdb.firebaseio.com",
-  projectId:"inverwork-inverfin",
-  storageBucket:"inverwork-inverfin.firebasestorage.app",
-  messagingSenderId:"459905480268",
-  appId:"1:459905480268:web:d65e2a6b8821238ff226e9"
-};
-const app=initializeApp(cfg);
-const db=getDatabase(app);
+const cfg={apiKey:"AIzaSyCVBfb-baz0rIN8s-rPhqSazMCF8u8JcM8",authDomain:"inverwork-inverfin.firebaseapp.com",databaseURL:"https://inverwork-inverfin-default-rtdb.firebaseio.com",projectId:"inverwork-inverfin",storageBucket:"inverwork-inverfin.firebasestorage.app",messagingSenderId:"459905480268",appId:"1:459905480268:web:d65e2a6b8821238ff226e9"};
+const app=initializeApp(cfg);const db=getDatabase(app);
 window.DB={
-  /* users */
   setUser:(id,d)=>set(ref(db,`users/${id}`),d),
   getUsers:()=>get(ref(db,'users')).then(s=>s.val()||{}),
   onUsers:cb=>onValue(ref(db,'users'),s=>cb(s.val()||{})),
-  /* projects */
   addProject:d=>push(ref(db,'projects'),d),
   updProject:(id,d)=>update(ref(db,`projects/${id}`),d),
   delProject:id=>remove(ref(db,`projects/${id}`)),
   onProjects:cb=>onValue(ref(db,'projects'),s=>cb(s.val()||{})),
-  /* tasks — live per project */
   addTask:(pid,d)=>push(ref(db,`tasks/${pid}`),d),
   updTask:(pid,tid,d)=>update(ref(db,`tasks/${pid}/${tid}`),d),
   delTask:(pid,tid)=>remove(ref(db,`tasks/${pid}/${tid}`)),
   onTasks:(pid,cb)=>onValue(ref(db,`tasks/${pid}`),s=>cb(s.val()||{})),
-  /* tasks — snapshot all */
   snapTasks:()=>get(ref(db,'tasks')).then(s=>s.val()||{}),
-  /* time logs */
   addTimeLog:(tid,d)=>push(ref(db,`timelogs/${tid}`),d),
-  /* costs */
   addCost:(pid,d)=>push(ref(db,`costs/${pid}`),d),
   delCost:(pid,cid)=>remove(ref(db,`costs/${pid}/${cid}`)),
   onCosts:(pid,cb)=>onValue(ref(db,`costs/${pid}`),s=>cb(s.val()||{})),
-  /* reports */
   addReport:d=>push(ref(db,'reports'),d),
   onReports:cb=>onValue(ref(db,'reports'),s=>cb(s.val()||{})),
-  /* comments */
   addComment:(rid,d)=>push(ref(db,`comments/${rid}`),d),
   onComments:(rid,cb)=>onValue(ref(db,`comments/${rid}`),s=>cb(s.val()||{})),
 };
@@ -93,88 +73,134 @@ window.dispatchEvent(new Event('firebase-ready'));
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
 const LOGO="data:image/jpeg;base64,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";
-const{useState,useEffect,useRef,useCallback}=React;
+const{useState,useEffect,useRef,useCallback,createPortal}=React;
 
 /* ── utils ── */
-const now   = ()=>new Date().toISOString();
-const uid   = ()=>Math.random().toString(36).slice(2,9);
-const fmtD  = d=>d?new Date(d).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'—';
-const fmtT  = d=>d?new Date(d).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';
-const pct   = tasks=>{const a=Object.values(tasks||{});return a.length?Math.round(a.filter(t=>t.status==='Completado').length/a.length*100):0};
-const ADMIN = {id:'admin',name:'Administrador',role:'admin',pin:'0000',company:'Inverfin'};
-const GC    = 'inverfin2025';
+const now  = ()=>new Date().toISOString();
+const uid  = ()=>Math.random().toString(36).slice(2,9);
+const fmtD = d=>d?new Date(d).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'—';
+const fmtT = d=>d?new Date(d).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';
+const calcPct=tasks=>{const a=Object.values(tasks||{});return a.length?Math.round(a.filter(t=>t.status==='Completado').length/a.length*100):0};
 
-/* ── status map ── */
+const ADMIN={id:'admin',name:'Administrador',role:'admin',pin:'0000',company:'Inverfin'};
+const GC='inverfin2025';
+
 const SM={
-  'Pendiente'  :{dot:'bg-ink-faint', tx:'text-ink-muted', bg:'bg-paper-soft border-paper-border'},
-  'En progreso':{dot:'bg-ink-light', tx:'text-ink-light', bg:'bg-paper-soft border-paper-border'},
-  'Completado' :{dot:'bg-accent',    tx:'text-accent-dark',bg:'bg-accent-light border-accent/25'},
-  'Activo'     :{dot:'bg-ink-light', tx:'text-ink-light', bg:'bg-paper-soft border-paper-border'},
-  'Pausado'    :{dot:'bg-ink-faint', tx:'text-ink-muted', bg:'bg-paper-soft border-paper-border'},
-  'Finalizado' :{dot:'bg-accent',    tx:'text-accent-dark',bg:'bg-accent-light border-accent/25'},
-  'Bloqueado'  :{dot:'bg-red-400',   tx:'text-red-600',   bg:'bg-red-50 border-red-100'},
+  'Pendiente'  :{dot:'bg-ink-faint', tx:'text-ink-muted', border:'border-paper-border', bg:'bg-paper-soft'},
+  'En progreso':{dot:'bg-ink-light', tx:'text-ink-light', border:'border-paper-border', bg:'bg-paper-soft'},
+  'Completado' :{dot:'bg-accent',    tx:'text-accent-dark',border:'border-accent/20',   bg:'bg-accent-light'},
+  'Activo'     :{dot:'bg-ink-light', tx:'text-ink-light', border:'border-paper-border', bg:'bg-paper-soft'},
+  'Pausado'    :{dot:'bg-ink-faint', tx:'text-ink-muted', border:'border-paper-border', bg:'bg-paper-soft'},
+  'Finalizado' :{dot:'bg-accent',    tx:'text-accent-dark',border:'border-accent/20',   bg:'bg-accent-light'},
+  'Bloqueado'  :{dot:'bg-red-400',   tx:'text-red-600',   border:'border-red-200',      bg:'bg-red-50'},
 };
 
 /* ── ATOMS ── */
-const Tag=({s})=>{const c=SM[s]||SM['Pendiente'];return(
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium border ${c.bg} ${c.tx}`}>
-    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`}/>
-    {s}
-  </span>
-)};
+const Tag=({s})=>{
+  const c=SM[s]||SM['Pendiente'];
+  return(
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium border ${c.bg} ${c.border} ${c.tx}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`}/>
+      {s}
+    </span>
+  );
+};
 
 const Bar=({v})=>(
-  <div className="h-1 w-full bg-paper-border rounded-full overflow-hidden">
+  <div className="h-0.5 w-full bg-paper-border rounded-full overflow-hidden">
     <div className="h-full rounded-full transition-all duration-500"
       style={{width:`${Math.min(v,100)}%`,background:v===100?'#2a7a4b':'#111'}}/>
   </div>
 );
 
-/* shared input style */
-const IS="w-full px-3 py-2.5 bg-white border border-paper-border rounded text-sm text-ink outline-none focus:border-ink transition-colors placeholder:text-ink-faint";
+const IS="w-full px-3 py-2.5 bg-white border border-paper-border rounded-lg text-sm text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/5 transition-all placeholder:text-ink-faint";
 
-const F=({label,children,half})=>(
-  <div className={`mb-4 ${half?'flex-1':''}`}>
-    {label&&<label className="block text-xs font-medium text-ink-muted uppercase tracking-widest mb-1.5">{label}</label>}
-    {children}
+const Lbl=({t})=><label className="block text-[11px] font-semibold text-ink-muted uppercase tracking-widest mb-1.5">{t}</label>;
+
+const Inp=({label,...p})=>(
+  <div className="mb-4">
+    {label&&<Lbl t={label}/>}
+    <input className={IS} {...p}/>
   </div>
 );
-const Inp=({label,half,...p})=><F label={label} half={half}><input className={IS} {...p}/></F>;
-const TA=({label,...p})=><F label={label}><textarea className={`${IS} resize-none`} rows={3} {...p}/></F>;
-const Sel=({label,opts,...p})=><F label={label}><select className={`${IS} appearance-none`} {...p}>{opts.map(o=><option key={o}>{o}</option>)}</select></F>;
 
-const B=({children,v='primary',sm,full,className='',disabled,...p})=>{
-  const base=`inline-flex items-center justify-center font-medium rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${sm?'px-3 py-1.5 text-xs':'px-4 py-2.5 text-sm'} ${full?'w-full':''}`;
+const TA=({label,...p})=>(
+  <div className="mb-4">
+    {label&&<Lbl t={label}/>}
+    <textarea className={`${IS} resize-none`} rows={3} {...p}/>
+  </div>
+);
+
+const Sel=({label,opts,...p})=>(
+  <div className="mb-4">
+    {label&&<Lbl t={label}/>}
+    <select className={`${IS} appearance-none cursor-pointer`} {...p}>
+      {opts.map(o=><option key={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
+const Btn=({children,v='primary',sm,full,className='',disabled,...p})=>{
+  const base=`inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition-all duration-150 select-none ${sm?'px-3 py-1.5 text-xs':'px-4 py-2.5 text-sm'} ${full?'w-full':''}`;
   const vs={
-    primary:`${base} bg-ink text-white hover:bg-ink-light`,
-    ghost:`${base} bg-white border border-paper-border text-ink-muted hover:border-ink hover:text-ink`,
-    accent:`${base} bg-accent text-white hover:bg-accent-dark`,
-    red:`${base} bg-white border border-paper-border text-ink-muted hover:border-red-300 hover:text-red-500`,
+    primary:`${base} bg-ink text-white hover:bg-ink-light active:scale-95`,
+    ghost:`${base} bg-white border border-paper-border text-ink-muted hover:border-ink hover:text-ink active:scale-95`,
+    accent:`${base} bg-accent text-white hover:bg-accent-dark active:scale-95`,
+    red:`${base} bg-white border border-paper-border text-ink-muted hover:border-red-300 hover:text-red-500 active:scale-95`,
   };
-  return<button className={`${vs[v]||vs.primary} ${className}`} disabled={disabled} {...p}>{children}</button>;
+  return(
+    <button
+      className={`${vs[v]||vs.primary} ${disabled?'opacity-40 cursor-not-allowed pointer-events-none':''} ${className}`}
+      disabled={disabled} {...p}>
+      {children}
+    </button>
+  );
 };
 
-const Hr=()=><div className="my-1 h-px bg-paper-border"/>;
+/* ── MODAL — renders via portal to document.body, bypasses overflow issues ── */
+const Modal=({title,sub,onClose,wide,children})=>{
+  // close on Escape
+  useEffect(()=>{
+    const h=e=>{if(e.key==='Escape')onClose()};
+    document.addEventListener('keydown',h);
+    return()=>document.removeEventListener('keydown',h);
+  },[]);
 
-const Modal=({title,sub,onClose,wide,children})=>(
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/25 backdrop-blur-[2px]"
-    onMouseDown={e=>e.target===e.currentTarget&&onClose()}>
-    <div className={`bg-white border border-paper-border rounded-lg shadow-xl w-full ${wide?'max-w-2xl':'max-w-md'} max-h-[92vh] flex flex-col scale-in`}>
-      <div className="flex items-start justify-between px-6 py-5 border-b border-paper-border flex-shrink-0">
-        <div>
-          <h2 className="garamond text-xl font-medium text-ink">{title}</h2>
-          {sub&&<p className="text-xs text-ink-muted mt-0.5">{sub}</p>}
+  const content=(
+    <div
+      style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px',background:'rgba(0,0,0,0.3)'}}
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div
+        className={`bg-white border border-paper-border rounded-xl shadow-2xl w-full ${wide?'max-w-2xl':'max-w-md'} flex flex-col modal-in`}
+        style={{maxHeight:'90vh'}}
+        onClick={e=>e.stopPropagation()}>
+        {/* header */}
+        <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',flexShrink:0}}>
+          <div>
+            <div className="garamond text-xl font-medium text-ink">{title}</div>
+            {sub&&<div className="text-xs text-ink-muted mt-0.5">{sub}</div>}
+          </div>
+          <button onClick={onClose}
+            style={{width:'28px',height:'28px',borderRadius:'50%',border:'1px solid #e4e4e0',background:'#f4f4f2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',color:'#888',cursor:'pointer',flexShrink:0}}
+            onMouseEnter={e=>e.target.style.color='#111'}
+            onMouseLeave={e=>e.target.style.color='#888'}>
+            ×
+          </button>
         </div>
-        <button onMouseDown={onClose} className="text-ink-faint hover:text-ink transition-colors text-xl leading-none ml-4">×</button>
+        {/* body */}
+        <div style={{padding:'20px 24px',overflowY:'auto',flex:1}}>
+          {children}
+        </div>
       </div>
-      <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
     </div>
-  </div>
-);
+  );
+
+  return createPortal(content, document.body);
+};
 
 /* ── SPLASH ── */
 const Splash=()=>(
-  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+  <div style={{position:'fixed',inset:0,zIndex:9999,background:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
     <img src={LOGO} className="w-12 h-12 rounded-xl mb-5" alt=""/>
     <h1 className="garamond text-3xl font-medium text-ink mb-1">InverWork</h1>
     <p className="text-xs text-ink-muted tracking-widest uppercase mb-8">Inverfin Holding</p>
@@ -190,7 +216,7 @@ const Auth=({onLogin})=>{
   const[busy,setBusy]=useState(false);
   const u=k=>e=>sf(p=>({...p,[k]:e.target.value}));
 
-  const login=async()=>{
+  const doLogin=async()=>{
     if(!f.name||!f.pin){setErr('Completa nombre y PIN');return}
     setBusy(true);setErr('');
     if(f.name.toLowerCase()==='admin'&&f.pin==='0000'){onLogin(ADMIN);return}
@@ -200,7 +226,7 @@ const Auth=({onLogin})=>{
     onLogin(found);
   };
 
-  const reg=async()=>{
+  const doReg=async()=>{
     if(!f.name||f.pin.length!==4){setErr('Nombre y PIN de 4 dígitos requeridos');return}
     if(f.role==='gerencia'&&f.code!==GC){setErr('Código de gerencia incorrecto');return}
     setBusy(true);setErr('');
@@ -208,18 +234,17 @@ const Auth=({onLogin})=>{
     if(Object.values(users).find(x=>x.name.toLowerCase()===f.name.toLowerCase())){setErr('Ese nombre ya existe');setBusy(false);return}
     const id=uid();
     const nu={id,name:f.name,pin:f.pin,role:f.role,company:'Inverfin',createdAt:now()};
-    await window.DB.setUser(id,nu);
-    onLogin(nu);
+    await window.DB.setUser(id,nu);onLogin(nu);
   };
 
   return(
-    <div className="min-h-screen flex">
-      {/* left dark panel */}
+    <div style={{minHeight:'100vh',display:'flex'}}>
+      {/* panel izquierdo */}
       <div className="hidden lg:flex flex-col justify-between w-80 xl:w-96 bg-ink flex-shrink-0 p-12">
         <div>
           <div className="flex items-center gap-2.5 mb-14">
-            <img src={LOGO} className="w-8 h-8 rounded-lg opacity-90" alt=""/>
-            <span className="garamond text-white text-xl font-medium">InverWork</span>
+            <img src={LOGO} className="w-9 h-9 rounded-xl opacity-90" alt=""/>
+            <span className="garamond text-white text-2xl font-medium">InverWork</span>
           </div>
           <h2 className="garamond text-white text-3xl font-medium leading-snug mb-4">Gestión de proyectos para Inverfin Holding</h2>
           <p className="text-white/40 text-sm leading-relaxed">Proyectos, tareas, tiempo y reportes — todo centralizado y en tiempo real.</p>
@@ -230,46 +255,47 @@ const Auth=({onLogin})=>{
         </div>
       </div>
 
-      {/* right white panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-paper-warm">
+      {/* panel derecho */}
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'32px',background:'#fafaf8'}}>
         <div className="w-full max-w-sm fade-in">
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <img src={LOGO} className="w-8 h-8 rounded-lg" alt=""/>
+            <img src={LOGO} className="w-8 h-8 rounded-xl" alt=""/>
             <div>
               <div className="garamond text-xl font-medium text-ink">InverWork</div>
               <div className="text-[10px] text-ink-muted tracking-widest uppercase">Inverfin Holding</div>
             </div>
           </div>
 
-          <h1 className="garamond text-2xl font-medium text-ink mb-1">{mode==='login'?'Iniciar sesión':'Crear cuenta'}</h1>
+          <h1 className="garamond text-3xl font-medium text-ink mb-1">{mode==='login'?'Iniciar sesión':'Crear cuenta'}</h1>
           <p className="text-sm text-ink-muted mb-8">{mode==='login'?'Accede con tu nombre y PIN de 4 dígitos.':'Elige tu nombre y crea un PIN.'}</p>
 
           {mode==='login'?(
             <>
               <Inp label="Nombre" placeholder="Tu nombre completo" value={f.name} onChange={u('name')}/>
-              <Inp label="PIN" type="password" maxLength={4} inputMode="numeric" placeholder="••••" value={f.pin} onChange={u('pin')} onKeyDown={e=>e.key==='Enter'&&login()}/>
-              {err&&<p className="text-red-500 text-xs mb-4">⚠ {err}</p>}
-              <B full onClick={login} disabled={busy}>{busy?'Verificando…':'Entrar →'}</B>
-              <p className="text-sm text-ink-muted text-center mt-5">¿Sin cuenta? <span className="text-ink underline cursor-pointer" onClick={()=>{setMode('reg');setErr('')}}>Regístrate</span></p>
+              <Inp label="PIN" type="password" maxLength={4} inputMode="numeric" placeholder="••••" value={f.pin} onChange={u('pin')} onKeyDown={e=>e.key==='Enter'&&doLogin()}/>
+              {err&&<p className="text-red-500 text-xs mb-4 flex items-center gap-1.5">⚠ {err}</p>}
+              <Btn full onClick={doLogin} disabled={busy}>{busy?'Verificando…':'Entrar →'}</Btn>
+              <p className="text-sm text-ink-muted text-center mt-6">¿Sin cuenta? <span className="text-ink underline cursor-pointer hover:no-underline" onClick={()=>{setMode('reg');setErr('')}}>Regístrate</span></p>
             </>
           ):(
             <>
               <Inp label="Nombre completo" placeholder="Ej. María González" value={f.name} onChange={u('name')}/>
               <Inp label="PIN (4 dígitos)" type="password" maxLength={4} inputMode="numeric" placeholder="••••" value={f.pin} onChange={u('pin')}/>
-              <F label="Rol">
+              <div className="mb-4">
+                <Lbl t="Rol"/>
                 <div className="grid grid-cols-2 gap-2">
                   {['empleado','gerencia'].map(r=>(
-                    <button key={r} onMouseDown={()=>sf(p=>({...p,role:r}))}
-                      className={`py-3 border rounded text-sm font-medium transition-all capitalize ${f.role===r?'border-ink bg-ink text-white':'border-paper-border text-ink-muted hover:border-ink-faint'}`}>
+                    <button key={r} onClick={()=>sf(p=>({...p,role:r}))}
+                      className={`py-3 border rounded-lg text-sm font-semibold transition-all capitalize ${f.role===r?'border-ink bg-ink text-white':'border-paper-border text-ink-muted hover:border-ink-faint'}`}>
                       {r}
                     </button>
                   ))}
                 </div>
-              </F>
+              </div>
               {f.role==='gerencia'&&<Inp label="Código de gerencia" placeholder="Código confidencial" value={f.code} onChange={u('code')}/>}
               {err&&<p className="text-red-500 text-xs mb-4">⚠ {err}</p>}
-              <B full onClick={reg} disabled={busy}>{busy?'Registrando…':'Crear cuenta →'}</B>
-              <p className="text-sm text-ink-muted text-center mt-5">¿Ya tienes cuenta? <span className="text-ink underline cursor-pointer" onClick={()=>{setMode('login');setErr('')}}>Entrar</span></p>
+              <Btn full onClick={doReg} disabled={busy}>{busy?'Registrando…':'Crear cuenta →'}</Btn>
+              <p className="text-sm text-ink-muted text-center mt-6">¿Ya tienes cuenta? <span className="text-ink underline cursor-pointer hover:no-underline" onClick={()=>{setMode('login');setErr('')}}>Entrar</span></p>
             </>
           )}
         </div>
@@ -278,127 +304,133 @@ const Auth=({onLogin})=>{
   );
 };
 
-/* ── SIDEBAR ── */
+/* ── LAYOUT ── */
 const Sidebar=({user,tab,setTab,tabs,synced,notifs,onNotif,onLogout})=>{
   const rl={admin:'Admin',gerencia:'Gerencia',empleado:'Empleado'};
   return(
-    <aside className="hidden md:flex flex-col w-52 xl:w-56 border-r border-paper-border bg-white h-screen sticky top-0 flex-shrink-0 z-20">
-      {/* brand */}
-      <div className="px-5 py-6 border-b border-paper-border flex items-center gap-2.5">
-        <img src={LOGO} className="w-7 h-7 rounded-lg flex-shrink-0" alt=""/>
+    <aside style={{width:'210px',borderRight:'1px solid #e4e4e0',background:'#fff',display:'flex',flexDirection:'column',height:'100vh',position:'sticky',top:0,flexShrink:0}}>
+      <div style={{padding:'24px 20px 20px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'center',gap:'10px'}}>
+        <img src={LOGO} style={{width:'28px',height:'28px',borderRadius:'8px'}} alt=""/>
         <div>
-          <div className="garamond text-base font-medium text-ink leading-none">InverWork</div>
-          <div className="text-[9px] text-ink-faint tracking-widest uppercase mt-0.5">Inverfin</div>
+          <div className="garamond text-base font-medium text-ink" style={{lineHeight:1}}>InverWork</div>
+          <div style={{fontSize:'9px',color:'#bbb',letterSpacing:'2px',textTransform:'uppercase',marginTop:'2px'}}>Inverfin</div>
         </div>
       </div>
-      {/* nav */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
+
+      <nav style={{flex:1,padding:'12px 8px',overflowY:'auto',display:'flex',flexDirection:'column',gap:'2px'}}>
         {tabs.map(t=>(
-          <button key={t.id} onMouseDown={()=>setTab(t.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded text-sm text-left transition-colors ${tab===t.id?'bg-ink text-white':'text-ink-muted hover:text-ink hover:bg-paper-soft'}`}>
-            <span className="text-base w-5 text-center">{t.icon}</span>
-            <span className="font-medium">{t.label}</span>
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{width:'100%',display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',borderRadius:'8px',border:'none',cursor:'pointer',textAlign:'left',fontSize:'14px',fontWeight:500,transition:'all 0.15s',
+              background:tab===t.id?'#111':'transparent',
+              color:tab===t.id?'#fff':'#888'}}>
+            <span style={{width:'18px',textAlign:'center',fontSize:'15px'}}>{t.icon}</span>
+            {t.label}
           </button>
         ))}
       </nav>
-      {/* bottom */}
-      <div className="border-t border-paper-border px-2 py-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-1">
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${synced?'bg-accent':'bg-ink-faint'}`}/>
-          <span className="text-xs text-ink-muted flex-1">{synced?'Firebase · en vivo':'Conectando…'}</span>
-          {notifs>0&&<button onMouseDown={onNotif} className="text-xs font-bold text-accent">🔔{notifs}</button>}
+
+      <div style={{borderTop:'1px solid #e4e4e0',padding:'12px 8px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 12px',marginBottom:'4px'}}>
+          <span style={{width:'6px',height:'6px',borderRadius:'50%',background:synced?'#2a7a4b':'#bbb',flexShrink:0}}/>
+          <span style={{fontSize:'11px',color:'#888',flex:1}}>{synced?'Firebase · en vivo':'Conectando…'}</span>
+          {notifs>0&&<button onClick={onNotif} style={{fontSize:'11px',fontWeight:'bold',color:'#2a7a4b',background:'none',border:'none',cursor:'pointer'}}>🔔{notifs}</button>}
         </div>
-        <button onMouseDown={onLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded hover:bg-paper-soft transition-colors text-left group">
-          <div className="w-6 h-6 rounded-full bg-paper-soft border border-paper-border flex items-center justify-center text-xs font-semibold text-ink-muted flex-shrink-0">{user.name[0].toUpperCase()}</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-ink truncate">{user.name}</div>
-            <div className="text-[10px] text-ink-faint">{rl[user.role]||user.role}</div>
+        <button onClick={onLogout}
+          style={{width:'100%',display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',borderRadius:'8px',border:'none',cursor:'pointer',background:'transparent',transition:'background 0.15s'}}
+          onMouseEnter={e=>e.currentTarget.style.background='#f4f4f2'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <div style={{width:'28px',height:'28px',borderRadius:'50%',background:'#f4f4f2',border:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:600,color:'#888',flexShrink:0}}>
+            {user.name[0].toUpperCase()}
           </div>
-          <span className="text-ink-faint text-xs opacity-0 group-hover:opacity-100 transition-opacity">↩</span>
+          <div style={{flex:1,minWidth:0,textAlign:'left'}}>
+            <div style={{fontSize:'13px',fontWeight:500,color:'#111',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.name}</div>
+            <div style={{fontSize:'11px',color:'#bbb'}}>{rl[user.role]||user.role}</div>
+          </div>
+          <span style={{fontSize:'11px',color:'#ddd'}}>↩</span>
         </button>
       </div>
     </aside>
   );
 };
 
-/* mobile header */
 const MobileHeader=({user,tab,tabs,setTab,notifs,onNotif,onLogout})=>(
-  <>
-    <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-paper-border bg-white sticky top-0 z-20">
-      <div className="flex items-center gap-2">
-        <img src={LOGO} className="w-7 h-7 rounded-lg" alt=""/>
+  <div className="md:hidden" style={{position:'sticky',top:0,zIndex:100,background:'#fff',borderBottom:'1px solid #e4e4e0'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+        <img src={LOGO} style={{width:'28px',height:'28px',borderRadius:'8px'}} alt=""/>
         <span className="garamond text-base font-medium text-ink">InverWork</span>
       </div>
-      <div className="flex items-center gap-3">
-        {notifs>0&&<button onMouseDown={onNotif} className="text-sm relative">🔔<span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-accent rounded-full text-white text-[8px] font-bold flex items-center justify-center">{notifs}</span></button>}
-        <button onMouseDown={onLogout} className="text-xs text-ink-muted hover:text-ink">Salir</button>
+      <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+        {notifs>0&&<button onClick={onNotif} style={{position:'relative',background:'none',border:'none',cursor:'pointer',fontSize:'16px'}}>
+          🔔<span style={{position:'absolute',top:'-4px',right:'-4px',width:'14px',height:'14px',borderRadius:'50%',background:'#2a7a4b',color:'#fff',fontSize:'9px',fontWeight:'bold',display:'flex',alignItems:'center',justifyContent:'center'}}>{notifs}</span>
+        </button>}
+        <button onClick={onLogout} style={{fontSize:'12px',color:'#888',background:'none',border:'none',cursor:'pointer'}}>Salir</button>
       </div>
-    </header>
-    <div className="md:hidden flex border-b border-paper-border bg-white overflow-x-auto sticky top-[53px] z-10">
+    </div>
+    <div style={{display:'flex',overflowX:'auto',borderTop:'1px solid #f4f4f2'}}>
       {tabs.map(t=>(
-        <button key={t.id} onMouseDown={()=>setTab(t.id)}
-          className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all ${tab===t.id?'border-ink text-ink':'border-transparent text-ink-muted hover:text-ink'}`}>
+        <button key={t.id} onClick={()=>setTab(t.id)}
+          style={{flexShrink:0,padding:'10px 16px',fontSize:'12px',fontWeight:500,border:'none',borderBottom:`2px solid ${tab===t.id?'#111':'transparent'}`,color:tab===t.id?'#111':'#888',background:'transparent',cursor:'pointer',whiteSpace:'nowrap',transition:'all 0.15s'}}>
           {t.icon} {t.label}
         </button>
       ))}
     </div>
-  </>
+  </div>
 );
 
 /* ── DASHBOARD ── */
-const Dashboard=({user,projects,allTasks,reports,setTab,setOpenProj})=>{
+const Dashboard=({user,projects,allTasks,reports,onGo})=>{
   const isAdmin=user.role==='admin'||user.role==='gerencia';
   const myP=isAdmin?Object.entries(projects):Object.entries(projects).filter(([,p])=>p.ownerId===user.id);
   const today=new Date().toDateString();
-  const todayH=Object.values(reports||{}).filter(r=>r.userId===user.id&&new Date(r.date).toDateString()===today).reduce((a,r)=>a+(Number(r.hoursWorked)||0),0);
-  const myTasks=myP.flatMap(([pid])=>Object.values(allTasks[pid]||{}));
-
+  const todayH=Object.values(reports||{}).filter(r=>r.userId===user.id&&new Date(r.date).toDateString()===today).reduce((a,r)=>a+(+r.hoursWorked||0),0);
+  const myT=myP.flatMap(([pid])=>Object.values(allTasks[pid]||{}));
   const stats=[
-    {n:myP.filter(([,p])=>['Activo','En progreso'].includes(p.status)).length, l:'Proyectos activos'},
-    {n:myTasks.filter(t=>t.status==='Pendiente').length,                        l:'Tareas pendientes'},
-    {n:myTasks.filter(t=>t.status==='Completado').length,                       l:'Completadas'},
-    {n:`${todayH}h`,                                                             l:'Horas hoy'},
+    {n:myP.filter(([,p])=>['Activo','En progreso'].includes(p.status)).length,l:'Proyectos activos'},
+    {n:myT.filter(t=>t.status==='Pendiente').length,                           l:'Tareas pendientes'},
+    {n:myT.filter(t=>t.status==='Completado').length,                          l:'Completadas'},
+    {n:`${todayH}h`,                                                            l:'Horas hoy'},
   ];
-
   return(
     <div className="fade-in">
-      <div className="mb-8 pb-7 border-b border-paper-border">
-        <p className="text-xs text-ink-muted uppercase tracking-widest mb-2">{new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
-        <h1 className="garamond text-4xl font-medium text-ink">Bienvenido, {user.name}</h1>
+      <div style={{marginBottom:'32px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
+        <p style={{fontSize:'11px',color:'#888',textTransform:'uppercase',letterSpacing:'2px',marginBottom:'8px'}}>{new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+        <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Bienvenido, {user.name}</h1>
       </div>
 
-      {/* stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-paper-border border border-paper-border rounded-lg overflow-hidden mb-8">
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden',marginBottom:'32px'}}>
         {stats.map((s,i)=>(
-          <div key={i} className="bg-white px-5 py-5">
-            <div className="garamond text-3xl font-medium text-ink mb-1">{s.n}</div>
-            <div className="text-xs text-ink-muted">{s.l}</div>
+          <div key={i} style={{background:'#fff',padding:'20px 24px'}}>
+            <div className="garamond" style={{fontSize:'36px',fontWeight:500,color:'#111',marginBottom:'4px'}}>{s.n}</div>
+            <div style={{fontSize:'12px',color:'#888'}}>{s.l}</div>
           </div>
         ))}
       </div>
 
-      {/* recent projects */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="garamond text-xl font-medium text-ink">Proyectos recientes</h2>
-        <button onMouseDown={()=>setTab('projects')} className="text-xs text-ink-muted hover:text-ink underline">Ver todos →</button>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
+        <h2 className="garamond" style={{fontSize:'22px',fontWeight:500,color:'#111'}}>Proyectos recientes</h2>
+        <button onClick={()=>onGo('projects')} style={{fontSize:'12px',color:'#888',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Ver todos →</button>
       </div>
+
       {myP.length===0?(
-        <div className="border border-paper-border rounded-lg p-12 text-center">
-          <p className="text-sm text-ink-muted mb-4">Sin proyectos. Crea el primero en la pestaña Proyectos.</p>
-          <B sm onMouseDown={()=>setTab('projects')}>Ir a Proyectos</B>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'48px',textAlign:'center'}}>
+          <p style={{color:'#888',fontSize:'14px',marginBottom:'16px'}}>Sin proyectos. Crea el primero.</p>
+          <Btn sm onClick={()=>onGo('projects')}>Ir a Proyectos</Btn>
         </div>
       ):(
-        <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-          {myP.slice(0,6).map(([pid,p])=>{
-            const v=pct(allTasks[pid]||{});
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+          {myP.slice(0,6).map(([pid,p],i)=>{
+            const v=calcPct(allTasks[pid]||{});
             return(
-              <div key={pid} className="bg-white flex items-center gap-5 px-5 py-3.5 hover:bg-paper-warm transition-colors cursor-pointer"
-                onMouseDown={()=>{setOpenProj({id:pid,data:p});setTab('projects')}}>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-ink text-sm truncate mb-1.5">{p.name}</div>
+              <div key={pid} onClick={()=>onGo('project',pid,p)}
+                style={{display:'flex',alignItems:'center',gap:'20px',padding:'14px 20px',background:'#fff',borderTop:i>0?'1px solid #e4e4e0':'none',cursor:'pointer',transition:'background 0.1s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#fafaf8'}
+                onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:500,color:'#111',marginBottom:'6px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
                   <Bar v={v}/>
                 </div>
-                <span className="text-xs text-ink-muted font-mono w-8 text-right">{v}%</span>
+                <span style={{fontSize:'12px',color:'#888',fontFamily:'monospace',width:'32px',textAlign:'right'}}>{v}%</span>
                 <Tag s={p.status}/>
               </div>
             );
@@ -409,8 +441,8 @@ const Dashboard=({user,projects,allTasks,reports,setTab,setOpenProj})=>{
   );
 };
 
-/* ── PROJECTS LIST ── */
-const ProjectsList=({user,projects,allTasks,onOpen})=>{
+/* ── PROJECTS ── */
+const Projects=({user,projects,allTasks,openProj,setOpenProj})=>{
   const[showCreate,setShowCreate]=useState(false);
   const[form,setForm]=useState({name:'',description:'',startDate:'',endDate:'',status:'Activo'});
   const upd=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
@@ -424,82 +456,83 @@ const ProjectsList=({user,projects,allTasks,onOpen})=>{
     setForm({name:'',description:'',startDate:'',endDate:'',status:'Activo'});
   };
 
+  /* if a project is open show its detail */
+  if(openProj){
+    return <ProjectDetail user={user} pid={openProj.id} project={openProj.data} onBack={()=>setOpenProj(null)}/>;
+  }
+
+  const R=({style,...p})=><div style={{transition:'background 0.1s',...style}} {...p}/>;
+
   return(
     <div className="fade-in">
-      <div className="flex items-center justify-between mb-7 pb-6 border-b border-paper-border">
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
         <div>
-          <h1 className="garamond text-4xl font-medium text-ink">Proyectos</h1>
-          <p className="text-sm text-ink-muted mt-1">{list.length} proyecto{list.length!==1?'s':''}</p>
+          <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Proyectos</h1>
+          <p style={{fontSize:'13px',color:'#888',marginTop:'4px'}}>{list.length} proyecto{list.length!==1?'s':''}</p>
         </div>
-        {!isAdmin&&<B onMouseDown={()=>setShowCreate(true)}>+ Nuevo proyecto</B>}
+        {!isAdmin&&<Btn onClick={()=>setShowCreate(true)}>+ Nuevo proyecto</Btn>}
       </div>
 
       {list.length===0?(
-        <div className="border border-paper-border rounded-lg py-20 text-center">
-          <p className="garamond text-2xl text-ink-muted mb-1">Sin proyectos</p>
-          <p className="text-sm text-ink-muted mb-6">Crea tu primer proyecto para empezar.</p>
-          {!isAdmin&&<B onMouseDown={()=>setShowCreate(true)}>Crear proyecto</B>}
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'80px',textAlign:'center'}}>
+          <p className="garamond" style={{fontSize:'24px',color:'#bbb',marginBottom:'8px'}}>Sin proyectos</p>
+          <p style={{fontSize:'13px',color:'#888',marginBottom:'24px'}}>Crea tu primer proyecto para empezar.</p>
+          {!isAdmin&&<Btn onClick={()=>setShowCreate(true)}>Crear proyecto</Btn>}
         </div>
       ):(
-        <div className="border border-paper-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-paper-soft border-b border-paper-border">
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest">Proyecto</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest hidden sm:table-cell">Responsable</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest">Estado</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest">Avance</th>
-                <th className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest hidden md:table-cell">Tareas</th>
-                <th className="px-5 py-3"/>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-paper-border">
-              {list.map(([pid,p])=>{
-                const tasks=allTasks[pid]||{};
-                const v=pct(tasks);
-                const total=Object.keys(tasks).length;
-                const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
-                return(
-                  <tr key={pid} className="bg-white hover:bg-paper-warm transition-colors">
-                    <td className="px-5 py-4 cursor-pointer" onMouseDown={()=>onOpen(pid,p)}>
-                      <div className="font-medium text-ink">{p.name}</div>
-                      {p.description&&<div className="text-xs text-ink-muted mt-0.5 line-clamp-1">{p.description}</div>}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-ink-muted hidden sm:table-cell">{p.ownerName}</td>
-                    <td className="px-5 py-4"><Tag s={p.status}/></td>
-                    <td className="px-5 py-4">
-                      <div className="w-24 mb-1"><Bar v={v}/></div>
-                      <span className="text-xs text-ink-muted font-mono">{v}%</span>
-                    </td>
-                    <td className="px-5 py-4 text-xs text-ink-muted font-mono hidden md:table-cell">{done}/{total}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 justify-end">
-                        <B v="ghost" sm onMouseDown={()=>onOpen(pid,p)}>Ver →</B>
-                        {p.ownerId===user.id&&(
-                          <B v="red" sm onMouseDown={()=>confirm('¿Eliminar este proyecto?')&&window.DB.delProject(pid)}>×</B>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+          {/* header */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto auto auto auto',gap:'0',background:'#f4f4f2',borderBottom:'1px solid #e4e4e0',padding:'10px 20px'}}>
+            {['Proyecto','Estado','Avance','Tareas',''].map((h,i)=>(
+              <div key={i} style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',textAlign:i>=2?'left':'left',padding:i===4?'0':'0 12px 0 0'}}>{h}</div>
+            ))}
+          </div>
+          {/* rows */}
+          {list.map(([pid,p])=>{
+            const tasks=allTasks[pid]||{};
+            const v=calcPct(tasks);
+            const total=Object.keys(tasks).length;
+            const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
+            return(
+              <div key={pid}
+                style={{display:'grid',gridTemplateColumns:'1fr auto auto auto auto',alignItems:'center',padding:'14px 20px',borderTop:'1px solid #e4e4e0',background:'#fff',cursor:'pointer',transition:'background 0.1s'}}
+                onClick={()=>setOpenProj({id:pid,data:p})}
+                onMouseEnter={e=>e.currentTarget.style.background='#fafaf8'}
+                onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                {/* name */}
+                <div style={{minWidth:0}}>
+                  <div style={{fontWeight:500,color:'#111',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                  {p.description&&<div style={{fontSize:'12px',color:'#888',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.description}</div>}
+                </div>
+                <div style={{padding:'0 12px 0 0'}}><Tag s={p.status}/></div>
+                <div style={{padding:'0 12px 0 0',minWidth:'80px'}}>
+                  <Bar v={v}/>
+                  <span style={{fontSize:'11px',color:'#888',fontFamily:'monospace'}}>{v}%</span>
+                </div>
+                <div style={{fontSize:'12px',color:'#888',fontFamily:'monospace',padding:'0 12px 0 0'}}>{done}/{total}</div>
+                <div onClick={e=>e.stopPropagation()} style={{display:'flex',gap:'6px'}}>
+                  <Btn v="ghost" sm onClick={()=>setOpenProj({id:pid,data:p})}>Ver →</Btn>
+                  {p.ownerId===user.id&&<Btn v="red" sm onClick={()=>confirm('¿Eliminar?')&&window.DB.delProject(pid)}>×</Btn>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
+      {/* CREATE MODAL */}
       {showCreate&&(
         <Modal title="Nuevo proyecto" onClose={()=>setShowCreate(false)}>
-          <Inp label="Nombre *" value={form.name} onChange={upd('name')} placeholder="Nombre del proyecto"/>
+          <Inp label="Nombre *" value={form.name} onChange={upd('name')} placeholder="Nombre del proyecto" autoFocus/>
           <TA label="Descripción" value={form.description} onChange={upd('description')} placeholder="Descripción breve (opcional)"/>
-          <div className="flex gap-3">
-            <Inp label="Fecha inicio" type="date" value={form.startDate} onChange={upd('startDate')} half/>
-            <Inp label="Fecha fin est." type="date" value={form.endDate} onChange={upd('endDate')} half/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <Inp label="Fecha inicio" type="date" value={form.startDate} onChange={upd('startDate')}/>
+            <Inp label="Fecha fin est." type="date" value={form.endDate} onChange={upd('endDate')}/>
           </div>
           <Sel label="Estado" value={form.status} onChange={upd('status')} opts={['Activo','En progreso','Pausado','Finalizado']}/>
-          <div className="flex gap-3 pt-2">
-            <B v="ghost" full onMouseDown={()=>setShowCreate(false)}>Cancelar</B>
-            <B full onMouseDown={create} disabled={!form.name.trim()}>Crear proyecto</B>
+          <div style={{display:'flex',gap:'12px',paddingTop:'8px'}}>
+            <Btn v="ghost" full onClick={()=>setShowCreate(false)}>Cancelar</Btn>
+            <Btn full onClick={create} disabled={!form.name.trim()}>Crear proyecto</Btn>
           </div>
         </Modal>
       )}
@@ -507,7 +540,7 @@ const ProjectsList=({user,projects,allTasks,onOpen})=>{
   );
 };
 
-/* ── PROJECT DETAIL — fully reactive ── */
+/* ── PROJECT DETAIL ── */
 const ProjectDetail=({user,pid,project,onBack})=>{
   const[tasks,setTasks]=useState({});
   const[costs,setCosts]=useState({});
@@ -518,286 +551,250 @@ const ProjectDetail=({user,pid,project,onBack})=>{
   const[cf,scf]=useState({description:'',amount:'',date:''});
   const[timers,setTimers]=useState({});
   const[elapsed,setElapsed]=useState({});
+  const canEdit=project.ownerId===user.id;
 
-  /* live subscriptions */
   useEffect(()=>{
     const u1=window.DB.onTasks(pid,d=>setTasks(d||{}));
     const u2=window.DB.onCosts(pid,d=>setCosts(d||{}));
     return()=>{u1();u2()};
   },[pid]);
 
-  /* elapsed counter for running timers */
   useEffect(()=>{
     const iv=setInterval(()=>{
       setElapsed(prev=>{
         const next={...prev};
-        Object.entries(timers).forEach(([tid,t])=>{
-          if(t.running) next[tid]=Math.floor((Date.now()-t.start)/1000);
-        });
+        Object.entries(timers).forEach(([tid,t])=>{if(t.running)next[tid]=Math.floor((Date.now()-t.start)/1000)});
         return next;
       });
     },1000);
     return()=>clearInterval(iv);
   },[timers]);
 
-  const canEdit=project.ownerId===user.id;
-  const v=pct(tasks);
+  const v=calcPct(tasks);
   const taskArr=Object.entries(tasks);
-  const totalCost=Object.values(costs).reduce((a,c)=>a+(Number(c.amount)||0),0);
-
-  const ut=k=>e=>stf(p=>({...p,[k]:e.target.value}));
-  const uc=k=>e=>scf(p=>({...p,[k]:e.target.value}));
+  const totalCost=Object.values(costs).reduce((a,c)=>a+(+c.amount||0),0);
 
   const saveTask=async()=>{
     if(!tf.name.trim())return;
     await window.DB.addTask(pid,{...tf,assignedTo:user.id,assignedName:user.name,timeSpent:0,createdAt:now()});
-    setShowTask(false);
-    stf({name:'',description:'',status:'Pendiente',timeEstimated:''});
+    setShowTask(false);stf({name:'',description:'',status:'Pendiente',timeEstimated:''});
   };
 
   const changeStatus=async(tid,status)=>{
     await window.DB.updTask(pid,tid,{status});
-    /* recalc project progress */
-    const updated={...tasks,[tid]:{...tasks[tid],status}};
-    await window.DB.updProject(pid,{progress:pct(updated)});
+    const upd={...tasks,[tid]:{...tasks[tid],status}};
+    await window.DB.updProject(pid,{progress:calcPct(upd)});
   };
 
   const delTask=async tid=>{
-    if(!confirm('¿Eliminar esta tarea?'))return;
+    if(!confirm('¿Eliminar tarea?'))return;
     await window.DB.delTask(pid,tid);
-    const updated={...tasks};delete updated[tid];
-    await window.DB.updProject(pid,{progress:pct(updated)});
+    const upd={...tasks};delete upd[tid];
+    await window.DB.updProject(pid,{progress:calcPct(upd)});
   };
 
-  const startTimer=tid=>{
-    setTimers(p=>({...p,[tid]:{start:Date.now(),running:true}}));
-  };
-
+  const startTimer=tid=>setTimers(p=>({...p,[tid]:{start:Date.now(),running:true}}));
   const stopTimer=async tid=>{
-    const t=timers[tid];
-    if(!t?.running)return;
+    const t=timers[tid];if(!t?.running)return;
     const mins=Math.round((Date.now()-t.start)/60000);
     await window.DB.addTimeLog(tid,{userId:user.id,userName:user.name,duration:mins,createdAt:now()});
-    const prev=Number(tasks[tid]?.timeSpent)||0;
+    const prev=+tasks[tid]?.timeSpent||0;
     await window.DB.updTask(pid,tid,{timeSpent:prev+mins});
     setTimers(p=>({...p,[tid]:{running:false}}));
     setElapsed(p=>({...p,[tid]:0}));
   };
 
+  const fmtEl=s=>{const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`};
+
   const addCost=async()=>{
     if(!cf.description.trim()||!cf.amount)return;
     await window.DB.addCost(pid,{...cf,createdAt:now()});
-    setShowCost(false);
-    scf({description:'',amount:'',date:''});
-  };
-
-  const fmtElapsed=secs=>{
-    const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
-    return h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    setShowCost(false);scf({description:'',amount:'',date:''});
   };
 
   return(
     <div className="fade-in">
       {/* breadcrumb */}
-      <button onMouseDown={onBack} className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink transition-colors mb-5 group">
-        <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
-        <span>Proyectos</span>
+      <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'#888',background:'none',border:'none',cursor:'pointer',marginBottom:'20px',padding:0}}
+        onMouseEnter={e=>e.currentTarget.style.color='#111'} onMouseLeave={e=>e.currentTarget.style.color='#888'}>
+        ← Proyectos
       </button>
 
-      {/* project header */}
-      <div className="pb-7 border-b border-paper-border mb-7">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h1 className="garamond text-4xl font-medium text-ink">{project.name}</h1>
-            {project.description&&<p className="text-sm text-ink-muted mt-1.5 max-w-xl">{project.description}</p>}
-          </div>
+      {/* header */}
+      <div style={{paddingBottom:'24px',borderBottom:'1px solid #e4e4e0',marginBottom:'24px'}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'16px',marginBottom:'12px'}}>
+          <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111',lineHeight:1.1}}>{project.name}</h1>
           {canEdit&&(
-            <Sel label="" value={project.status}
+            <select value={project.status}
               onChange={e=>window.DB.updProject(pid,{status:e.target.value})}
-              opts={['Activo','En progreso','Pausado','Finalizado','Bloqueado']}
-              className="w-36 flex-shrink-0"/>
+              style={{padding:'8px 12px',border:'1px solid #e4e4e0',borderRadius:'8px',fontSize:'13px',color:'#111',background:'#fff',cursor:'pointer',flexShrink:0,outline:'none'}}>
+              {['Activo','En progreso','Pausado','Finalizado','Bloqueado'].map(s=><option key={s}>{s}</option>)}
+            </select>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        {project.description&&<p style={{fontSize:'13px',color:'#888',marginBottom:'12px'}}>{project.description}</p>}
+        <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap',marginBottom:'16px'}}>
           <Tag s={project.status}/>
-          <span className="text-xs text-ink-muted">{taskArr.length} tarea{taskArr.length!==1?'s':''}</span>
-          <span className="text-xs text-ink-muted">{project.ownerName}</span>
-          {project.startDate&&<span className="text-xs text-ink-muted">Inicio: {fmtD(project.startDate)}</span>}
-          {project.endDate&&<span className="text-xs text-ink-muted">Fin: {fmtD(project.endDate)}</span>}
+          <span style={{fontSize:'12px',color:'#888'}}>{taskArr.length} tarea{taskArr.length!==1?'s':''}</span>
+          <span style={{fontSize:'12px',color:'#888'}}>{project.ownerName}</span>
+          {project.startDate&&<span style={{fontSize:'12px',color:'#888'}}>Inicio: {fmtD(project.startDate)}</span>}
         </div>
-
         {/* progress */}
-        <div className="mt-5 max-w-lg">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-ink-muted">Progreso automático</span>
-            <span className="font-mono text-ink">{v}%</span>
+        <div style={{maxWidth:'480px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',color:'#888',marginBottom:'6px'}}>
+            <span>Progreso automático por tareas</span>
+            <span style={{fontFamily:'monospace',color:'#111',fontWeight:600}}>{v}%</span>
           </div>
-          <div className="h-1.5 bg-paper-border rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500"
-              style={{width:`${v}%`,background:v===100?'#2a7a4b':'#111'}}/>
+          <div style={{height:'3px',background:'#e4e4e0',borderRadius:'99px',overflow:'hidden'}}>
+            <div style={{height:'100%',background:v===100?'#2a7a4b':'#111',width:`${v}%`,transition:'width 0.5s',borderRadius:'99px'}}/>
           </div>
         </div>
-
         {/* mini stats */}
-        <div className="grid grid-cols-3 gap-px mt-5 border border-paper-border rounded-lg overflow-hidden max-w-lg">
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'8px',overflow:'hidden',maxWidth:'360px',marginTop:'16px'}}>
           {[['Pendiente',taskArr.filter(([,t])=>t.status==='Pendiente').length],
             ['En progreso',taskArr.filter(([,t])=>t.status==='En progreso').length],
             ['Completado',taskArr.filter(([,t])=>t.status==='Completado').length]
           ].map(([s,n])=>(
-            <div key={s} className="bg-white px-4 py-3 text-center">
-              <div className="garamond text-2xl font-medium text-ink">{n}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">{s}</div>
+            <div key={s} style={{background:'#fff',padding:'12px',textAlign:'center'}}>
+              <div className="garamond" style={{fontSize:'28px',fontWeight:500,color:'#111'}}>{n}</div>
+              <div style={{fontSize:'10px',color:'#888',marginTop:'2px'}}>{s}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* tabs */}
-      <div className="flex items-center justify-between border-b border-paper-border mb-6">
-        <div className="flex">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #e4e4e0',marginBottom:'20px'}}>
+        <div style={{display:'flex'}}>
           {[['tasks','Tareas'],['costs','Costes']].map(([id,lbl])=>(
-            <button key={id} onMouseDown={()=>setPane(id)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-all ${pane===id?'border-ink text-ink':'border-transparent text-ink-muted hover:text-ink'}`}>
+            <button key={id} onClick={()=>setPane(id)}
+              style={{padding:'10px 16px',fontSize:'14px',fontWeight:500,border:'none',borderBottom:`2px solid ${pane===id?'#111':'transparent'}`,marginBottom:'-1px',color:pane===id?'#111':'#888',background:'transparent',cursor:'pointer',transition:'all 0.15s'}}>
               {lbl}
-              {id==='tasks'&&<span className="ml-1.5 text-xs text-ink-faint">({taskArr.length})</span>}
-              {id==='costs'&&totalCost>0&&<span className="ml-1.5 text-xs text-ink-faint">${totalCost.toFixed(0)}</span>}
+              {id==='tasks'&&<span style={{marginLeft:'6px',fontSize:'11px',color:'#bbb'}}>({taskArr.length})</span>}
+              {id==='costs'&&totalCost>0&&<span style={{marginLeft:'6px',fontSize:'11px',color:'#bbb'}}>${Math.round(totalCost)}</span>}
             </button>
           ))}
         </div>
-        <div className="mb-1">
-          {pane==='tasks'&&canEdit&&<B sm onMouseDown={()=>setShowTask(true)}>+ Tarea</B>}
-          {pane==='costs'&&canEdit&&<B sm onMouseDown={()=>setShowCost(true)}>+ Coste</B>}
+        <div style={{marginBottom:'8px'}}>
+          {pane==='tasks'&&canEdit&&<Btn sm onClick={()=>setShowTask(true)}>+ Tarea</Btn>}
+          {pane==='costs'&&canEdit&&<Btn sm onClick={()=>setShowCost(true)}>+ Coste</Btn>}
         </div>
       </div>
 
-      {/* ── TASKS ── */}
-      {pane==='tasks'&&(
-        taskArr.length===0?(
-          <div className="border border-paper-border rounded-lg py-16 text-center">
-            <p className="garamond text-xl text-ink-muted mb-1">Sin tareas</p>
-            <p className="text-xs text-ink-muted">{canEdit?'Añade la primera tarea a este proyecto.':'No hay tareas en este proyecto.'}</p>
-          </div>
-        ):(
-          <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-            {taskArr.map(([tid,t])=>{
-              const running=timers[tid]?.running;
-              const spent=Number(t.timeSpent)||0;
-              return(
-                <div key={tid} className="bg-white px-5 py-4">
-                  {/* task header */}
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-ink">{t.name}</div>
-                      {t.description&&<p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{t.description}</p>}
-                    </div>
-                    <Tag s={t.status}/>
+      {/* TASKS */}
+      {pane==='tasks'&&(taskArr.length===0?(
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'64px',textAlign:'center'}}>
+          <p className="garamond" style={{fontSize:'22px',color:'#bbb',marginBottom:'6px'}}>Sin tareas</p>
+          <p style={{fontSize:'13px',color:'#888'}}>{canEdit?'Añade la primera tarea.':'No hay tareas aún.'}</p>
+        </div>
+      ):(
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+          {taskArr.map(([tid,t],i)=>{
+            const running=timers[tid]?.running;
+            const spent=(+t.timeSpent||0);
+            return(
+              <div key={tid} style={{background:'#fff',padding:'16px 20px',borderTop:i>0?'1px solid #e4e4e0':'none'}}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'8px'}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:500,color:'#111',marginBottom:'4px'}}>{t.name}</div>
+                    {t.description&&<p style={{fontSize:'12px',color:'#888',lineHeight:1.5}}>{t.description}</p>}
                   </div>
-
-                  {/* task meta */}
-                  <div className="flex items-center gap-4 text-xs text-ink-muted mb-3 flex-wrap">
-                    {t.timeEstimated&&<span>Est. <span className="font-mono text-ink">{t.timeEstimated}h</span></span>}
-                    <span>Real <span className="font-mono text-ink">{(spent/60).toFixed(1)}h</span></span>
-                    {t.assignedName&&<span>👤 {t.assignedName}</span>}
-                    {running&&<span className="text-accent font-medium font-mono">⏱ {fmtElapsed(elapsed[tid]||0)}</span>}
-                  </div>
-
-                  {/* actions */}
-                  {canEdit&&(
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* status buttons */}
-                      {['Pendiente','En progreso','Completado'].map(s=>(
-                        <button key={s} onMouseDown={()=>changeStatus(tid,s)}
-                          className={`px-2.5 py-1 rounded border text-xs font-medium transition-all ${t.status===s?'bg-ink border-ink text-white':'border-paper-border text-ink-muted hover:border-ink-faint hover:text-ink'}`}>
-                          {s}
-                        </button>
-                      ))}
-                      <div className="ml-auto flex gap-2">
-                        {running
-                          ?<button onMouseDown={()=>stopTimer(tid)} className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium hover:bg-red-500 hover:text-white transition-all">⏹ Detener</button>
-                          :<button onMouseDown={()=>startTimer(tid)} className="px-3 py-1 bg-paper-soft border border-paper-border text-ink-muted rounded text-xs font-medium hover:border-ink hover:text-ink transition-all">▶ Timer</button>
-                        }
-                        <button onMouseDown={()=>delTask(tid)} className="px-2.5 py-1 border border-paper-border text-ink-faint rounded text-xs hover:border-red-300 hover:text-red-500 transition-all">×</button>
-                      </div>
-                    </div>
-                  )}
+                  <Tag s={t.status}/>
                 </div>
-              );
-            })}
-          </div>
-        )
-      )}
+                <div style={{display:'flex',alignItems:'center',gap:'16px',fontSize:'12px',color:'#888',marginBottom:canEdit?'12px':'0',flexWrap:'wrap'}}>
+                  {t.timeEstimated&&<span>Est. <span style={{fontFamily:'monospace',color:'#111'}}>{t.timeEstimated}h</span></span>}
+                  <span>Real <span style={{fontFamily:'monospace',color:'#111'}}>{(spent/60).toFixed(1)}h</span></span>
+                  {t.assignedName&&<span>👤 {t.assignedName}</span>}
+                  {running&&<span style={{color:'#2a7a4b',fontWeight:600,fontFamily:'monospace'}}>⏱ {fmtEl(elapsed[tid]||0)}</span>}
+                </div>
+                {canEdit&&(
+                  <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                    {['Pendiente','En progreso','Completado'].map(s=>(
+                      <button key={s} onClick={()=>changeStatus(tid,s)}
+                        style={{padding:'4px 10px',borderRadius:'6px',border:`1px solid ${t.status===s?'#111':'#e4e4e0'}`,background:t.status===s?'#111':'transparent',color:t.status===s?'#fff':'#888',fontSize:'12px',fontWeight:500,cursor:'pointer',transition:'all 0.15s'}}>
+                        {s}
+                      </button>
+                    ))}
+                    <div style={{marginLeft:'auto',display:'flex',gap:'6px'}}>
+                      {running
+                        ?<button onClick={()=>stopTimer(tid)} style={{padding:'4px 10px',borderRadius:'6px',border:'1px solid #fca5a5',background:'#fef2f2',color:'#dc2626',fontSize:'12px',fontWeight:500,cursor:'pointer'}}>⏹ Detener</button>
+                        :<button onClick={()=>startTimer(tid)} style={{padding:'4px 10px',borderRadius:'6px',border:'1px solid #e4e4e0',background:'transparent',color:'#888',fontSize:'12px',fontWeight:500,cursor:'pointer'}}>▶ Timer</button>
+                      }
+                      <button onClick={()=>delTask(tid)} style={{padding:'4px 8px',borderRadius:'6px',border:'1px solid #e4e4e0',background:'transparent',color:'#bbb',fontSize:'14px',cursor:'pointer',lineHeight:1}}>×</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
 
-      {/* ── COSTS ── */}
+      {/* COSTS */}
       {pane==='costs'&&(
-        <div>
+        <>
           {Object.keys(costs).length>0&&(
-            <div className="flex items-center gap-3 mb-5">
-              <span className="garamond text-2xl font-medium text-ink">Total</span>
-              <span className="garamond text-3xl font-medium text-accent">${totalCost.toFixed(2)}</span>
+            <div style={{display:'flex',alignItems:'baseline',gap:'8px',marginBottom:'16px'}}>
+              <span className="garamond" style={{fontSize:'22px',fontWeight:500,color:'#111'}}>Total</span>
+              <span className="garamond" style={{fontSize:'32px',fontWeight:500,color:'#2a7a4b'}}>${totalCost.toFixed(2)}</span>
             </div>
           )}
           {Object.keys(costs).length===0?(
-            <div className="border border-paper-border rounded-lg py-16 text-center">
-              <p className="garamond text-xl text-ink-muted mb-1">Sin costes</p>
-              <p className="text-xs text-ink-muted">{canEdit?'Registra costes externos de este proyecto.':'No hay costes registrados.'}</p>
+            <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'64px',textAlign:'center'}}>
+              <p className="garamond" style={{fontSize:'22px',color:'#bbb',marginBottom:'6px'}}>Sin costes</p>
+              <p style={{fontSize:'13px',color:'#888'}}>{canEdit?'Registra costes externos.':'No hay costes.'}</p>
             </div>
           ):(
-            <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-              {Object.entries(costs).map(([cid,c])=>(
-                <div key={cid} className="bg-white flex items-center justify-between px-5 py-4">
+            <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+              {Object.entries(costs).map(([cid,c],i)=>(
+                <div key={cid} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',background:'#fff',borderTop:i>0?'1px solid #e4e4e0':'none'}}>
                   <div>
-                    <div className="font-medium text-ink">{c.description}</div>
-                    <div className="text-xs text-ink-muted mt-0.5">{fmtD(c.date)}</div>
+                    <div style={{fontWeight:500,color:'#111'}}>{c.description}</div>
+                    <div style={{fontSize:'12px',color:'#888',marginTop:'2px'}}>{fmtD(c.date)}</div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="garamond text-xl font-medium text-ink">${Number(c.amount).toFixed(2)}</span>
-                    {canEdit&&<button onMouseDown={()=>window.DB.delCost(pid,cid)} className="text-ink-faint hover:text-red-500 transition-colors text-lg leading-none">×</button>}
+                  <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+                    <span className="garamond" style={{fontSize:'22px',fontWeight:500,color:'#111'}}>${(+c.amount).toFixed(2)}</span>
+                    {canEdit&&<button onClick={()=>window.DB.delCost(pid,cid)} style={{fontSize:'18px',color:'#bbb',background:'none',border:'none',cursor:'pointer',lineHeight:1}}>×</button>}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* ── TASK MODAL ── */}
+      {/* TASK MODAL */}
       {showTask&&(
         <Modal title="Nueva tarea" onClose={()=>setShowTask(false)}>
-          <Inp label="Nombre *" value={tf.name} onChange={ut('name')} placeholder="Nombre de la tarea"/>
-          <TA label="Descripción" value={tf.description} onChange={ut('description')} placeholder="Descripción opcional"/>
-          <div className="flex gap-3">
-            <Inp label="Tiempo estimado (h)" type="number" value={tf.timeEstimated} onChange={ut('timeEstimated')} placeholder="0" half/>
-            <Sel label="Estado" value={tf.status} onChange={ut('status')} opts={['Pendiente','En progreso','Completado']}/>
+          <Inp label="Nombre *" value={tf.name} onChange={e=>stf(p=>({...p,name:e.target.value}))} placeholder="Nombre de la tarea" autoFocus/>
+          <TA label="Descripción" value={tf.description} onChange={e=>stf(p=>({...p,description:e.target.value}))} placeholder="Descripción opcional"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <Inp label="Tiempo estimado (h)" type="number" value={tf.timeEstimated} onChange={e=>stf(p=>({...p,timeEstimated:e.target.value}))} placeholder="0"/>
+            <Sel label="Estado" value={tf.status} onChange={e=>stf(p=>({...p,status:e.target.value}))} opts={['Pendiente','En progreso','Completado']}/>
           </div>
-          <div className="flex gap-3 pt-2">
-            <B v="ghost" full onMouseDown={()=>setShowTask(false)}>Cancelar</B>
-            <B full onMouseDown={saveTask} disabled={!tf.name.trim()}>Guardar tarea</B>
+          <div style={{display:'flex',gap:'12px',paddingTop:'8px'}}>
+            <Btn v="ghost" full onClick={()=>setShowTask(false)}>Cancelar</Btn>
+            <Btn full onClick={saveTask} disabled={!tf.name.trim()}>Guardar tarea</Btn>
           </div>
         </Modal>
       )}
 
-      {/* ── COST MODAL ── */}
+      {/* COST MODAL */}
       {showCost&&(
         <Modal title="Añadir coste externo" onClose={()=>setShowCost(false)}>
-          <TA label="Concepto *" value={cf.description} onChange={uc('description')} placeholder="Ej. Consultor, dominio, API, freelancer…"/>
-          <div className="flex gap-3">
-            <Inp label="Importe ($) *" type="number" value={cf.amount} onChange={uc('amount')} placeholder="0.00" half/>
-            <Inp label="Fecha" type="date" value={cf.date} onChange={uc('date')} half/>
+          <TA label="Concepto *" value={cf.description} onChange={e=>scf(p=>({...p,description:e.target.value}))} placeholder="Ej. Consultor, dominio, API, freelancer…"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <Inp label="Importe ($) *" type="number" value={cf.amount} onChange={e=>scf(p=>({...p,amount:e.target.value}))} placeholder="0.00"/>
+            <Inp label="Fecha" type="date" value={cf.date} onChange={e=>scf(p=>({...p,date:e.target.value}))}/>
           </div>
-          <div className="flex gap-3 pt-2">
-            <B v="ghost" full onMouseDown={()=>setShowCost(false)}>Cancelar</B>
-            <B full onMouseDown={addCost} disabled={!cf.description.trim()||!cf.amount}>Añadir</B>
+          <div style={{display:'flex',gap:'12px',paddingTop:'8px'}}>
+            <Btn v="ghost" full onClick={()=>setShowCost(false)}>Cancelar</Btn>
+            <Btn full onClick={addCost} disabled={!cf.description.trim()||!cf.amount}>Añadir coste</Btn>
           </div>
         </Modal>
       )}
     </div>
   );
-};
-
-/* ── PROJECTS PAGE — wrapper ── */
-const Projects=({user,projects,allTasks,openProj,setOpenProj})=>{
-  if(openProj) return <ProjectDetail user={user} pid={openProj.id} project={openProj.data} onBack={()=>setOpenProj(null)}/>;
-  return <ProjectsList user={user} projects={projects} allTasks={allTasks} onOpen={(pid,p)=>setOpenProj({id:pid,data:p})}/>;
 };
 
 /* ── REPORTS ── */
@@ -809,21 +806,14 @@ const Reports=({user,projects,reports})=>{
   const[comments,setComments]=useState({});
   const upd=k=>e=>sf(p=>({...p,[k]:e.target.value}));
   const isAdmin=user.role==='admin'||user.role==='gerencia';
-  const list=Object.entries(reports||{})
-    .filter(([,r])=>isAdmin||r.userId===user.id)
-    .sort((a,b)=>new Date(b[1].createdAt||0)-new Date(a[1].createdAt||0));
+  const list=Object.entries(reports||{}).filter(([,r])=>isAdmin||r.userId===user.id).sort((a,b)=>new Date(b[1].createdAt||0)-new Date(a[1].createdAt||0));
 
-  useEffect(()=>{
-    if(!sel)return;
-    return window.DB.onComments(sel[0],d=>setComments(d||{}));
-  },[sel]);
+  useEffect(()=>{if(!sel)return;return window.DB.onComments(sel[0],d=>setComments(d||{}));},[sel]);
 
   const create=async()=>{
     if(!f.date)return;
-    await window.DB.addReport({...f,userId:user.id,userName:user.name,
-      projectName:projects[f.projectId]?.name||'',createdAt:now()});
-    setShow(false);
-    sf({projectId:'',tasks:'',hoursWorked:'',problems:'',notes:'',date:new Date().toISOString().slice(0,10)});
+    await window.DB.addReport({...f,userId:user.id,userName:user.name,projectName:projects[f.projectId]?.name||'',createdAt:now()});
+    setShow(false);sf({projectId:'',tasks:'',hoursWorked:'',problems:'',notes:'',date:new Date().toISOString().slice(0,10)});
   };
 
   const sendComment=async()=>{
@@ -834,36 +824,38 @@ const Reports=({user,projects,reports})=>{
 
   return(
     <div className="fade-in">
-      <div className="flex items-center justify-between mb-7 pb-6 border-b border-paper-border">
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
         <div>
-          <h1 className="garamond text-4xl font-medium text-ink">Reportes diarios</h1>
-          <p className="text-sm text-ink-muted mt-1">{list.length} reporte{list.length!==1?'s':''}</p>
+          <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Reportes diarios</h1>
+          <p style={{fontSize:'13px',color:'#888',marginTop:'4px'}}>{list.length} reporte{list.length!==1?'s':''}</p>
         </div>
-        {!isAdmin&&<B onMouseDown={()=>setShow(true)}>+ Nuevo reporte</B>}
+        {!isAdmin&&<Btn onClick={()=>setShow(true)}>+ Nuevo reporte</Btn>}
       </div>
 
       {list.length===0?(
-        <div className="border border-paper-border rounded-lg py-20 text-center">
-          <p className="garamond text-2xl text-ink-muted mb-2">Sin reportes</p>
-          {!isAdmin&&<B onMouseDown={()=>setShow(true)} className="mt-4">Crear primer reporte</B>}
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'80px',textAlign:'center'}}>
+          <p className="garamond" style={{fontSize:'24px',color:'#bbb',marginBottom:'16px'}}>Sin reportes</p>
+          {!isAdmin&&<Btn onClick={()=>setShow(true)}>Crear primer reporte</Btn>}
         </div>
       ):(
-        <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-          {list.map(([rid,r])=>(
-            <div key={rid} className="bg-white px-5 py-4 hover:bg-paper-warm transition-colors cursor-pointer"
-              onMouseDown={()=>setSel([rid,r])}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap mb-1">
-                    <span className="font-medium text-ink">{r.userName}</span>
-                    <span className="text-xs text-ink-muted">{fmtD(r.date)}</span>
-                    {r.projectName&&<span className="text-xs text-ink-muted">· {r.projectName}</span>}
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+          {list.map(([rid,r],i)=>(
+            <div key={rid} onClick={()=>setSel([rid,r])}
+              style={{padding:'14px 20px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff',cursor:'pointer',transition:'background 0.1s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#fafaf8'}
+              onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px'}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap',marginBottom:'4px'}}>
+                    <span style={{fontWeight:500,color:'#111'}}>{r.userName}</span>
+                    <span style={{fontSize:'12px',color:'#888'}}>{fmtD(r.date)}</span>
+                    {r.projectName&&<span style={{fontSize:'12px',color:'#888'}}>· {r.projectName}</span>}
                   </div>
-                  {r.tasks&&<p className="text-xs text-ink-muted line-clamp-2">{r.tasks}</p>}
-                  {r.problems&&<p className="text-xs text-red-500 mt-1">⚠ {r.problems}</p>}
+                  {r.tasks&&<p style={{fontSize:'12px',color:'#888',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{r.tasks}</p>}
+                  {r.problems&&<p style={{fontSize:'12px',color:'#dc2626',marginTop:'4px'}}>⚠ {r.problems}</p>}
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="garamond text-xl font-medium text-ink">{r.hoursWorked||0}h</span>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <span className="garamond" style={{fontSize:'22px',fontWeight:500,color:'#111'}}>{r.hoursWorked||0}h</span>
                 </div>
               </div>
             </div>
@@ -871,67 +863,66 @@ const Reports=({user,projects,reports})=>{
         </div>
       )}
 
-      {/* detail modal */}
+      {/* Detail modal */}
       {sel&&(
         <Modal title={sel[1].userName} sub={`${fmtD(sel[1].date)}${sel[1].projectName?' · '+sel[1].projectName:''}`} onClose={()=>setSel(null)} wide>
-          <div className="grid grid-cols-2 gap-px border border-paper-border rounded-lg overflow-hidden mb-5">
-            {[['Horas trabajadas',`${sel[1].hoursWorked||0}h`],['Proyecto',sel[1].projectName||'—']].map(([l,v])=>(
-              <div key={l} className="bg-paper-soft px-4 py-3">
-                <div className="text-[10px] text-ink-muted uppercase tracking-widest mb-1">{l}</div>
-                <div className="garamond text-xl font-medium text-ink">{v}</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'8px',overflow:'hidden',marginBottom:'20px'}}>
+            {[['Horas',`${sel[1].hoursWorked||0}h`],['Proyecto',sel[1].projectName||'—']].map(([l,v])=>(
+              <div key={l} style={{background:'#f4f4f2',padding:'12px 16px'}}>
+                <div style={{fontSize:'10px',color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'4px'}}>{l}</div>
+                <div className="garamond" style={{fontSize:'22px',fontWeight:500,color:'#111'}}>{v}</div>
               </div>
             ))}
           </div>
-          {sel[1].tasks&&<div className="mb-4"><p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-2">Tareas realizadas</p><p className="text-sm text-ink leading-relaxed border-l-2 border-paper-border pl-3">{sel[1].tasks}</p></div>}
-          {sel[1].problems&&<div className="mb-4 p-3 border border-red-100 rounded-lg bg-red-50"><p className="text-[10px] font-semibold text-red-400 uppercase tracking-widest mb-1">Problemas</p><p className="text-sm text-red-700">{sel[1].problems}</p></div>}
-          {sel[1].notes&&<div className="mb-4 p-3 border border-paper-border rounded-lg bg-paper-soft"><p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-1">Notas</p><p className="text-sm text-ink">{sel[1].notes}</p></div>}
-          <Hr/>
-          <div className="mt-4">
-            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-3">Comentarios</p>
-            <div className="space-y-3 mb-3 max-h-44 overflow-y-auto">
-              {Object.values(comments).length===0&&<p className="text-xs text-ink-faint">Sin comentarios aún.</p>}
+          {sel[1].tasks&&<div style={{marginBottom:'16px'}}><p style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Tareas realizadas</p><p style={{fontSize:'14px',color:'#111',lineHeight:1.6,borderLeft:'2px solid #e4e4e0',paddingLeft:'12px'}}>{sel[1].tasks}</p></div>}
+          {sel[1].problems&&<div style={{marginBottom:'16px',padding:'12px',border:'1px solid #fecaca',borderRadius:'8px',background:'#fef2f2'}}><p style={{fontSize:'10px',fontWeight:600,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Problemas</p><p style={{fontSize:'14px',color:'#b91c1c'}}>{sel[1].problems}</p></div>}
+          {sel[1].notes&&<div style={{marginBottom:'16px',padding:'12px',border:'1px solid #e4e4e0',borderRadius:'8px',background:'#f4f4f2'}}><p style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Notas</p><p style={{fontSize:'14px',color:'#111'}}>{sel[1].notes}</p></div>}
+          <div style={{borderTop:'1px solid #e4e4e0',paddingTop:'16px',marginTop:'4px'}}>
+            <p style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Comentarios</p>
+            <div style={{maxHeight:'160px',overflowY:'auto',marginBottom:'12px',display:'flex',flexDirection:'column',gap:'10px'}}>
+              {Object.values(comments).length===0&&<p style={{fontSize:'12px',color:'#bbb'}}>Sin comentarios aún.</p>}
               {Object.values(comments).map((c,i)=>(
-                <div key={i} className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-paper-soft border border-paper-border flex items-center justify-center text-xs font-medium text-ink-muted flex-shrink-0">{c.userName[0]}</div>
-                  <div className="flex-1">
-                    <div className="text-xs font-medium text-ink">{c.userName} <span className="text-ink-faint font-normal">{fmtT(c.createdAt)}</span></div>
-                    <div className="text-sm text-ink mt-0.5">{c.text}</div>
+                <div key={i} style={{display:'flex',gap:'10px'}}>
+                  <div style={{width:'24px',height:'24px',borderRadius:'50%',background:'#f4f4f2',border:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:600,color:'#888',flexShrink:0}}>{c.userName[0]}</div>
+                  <div>
+                    <div style={{fontSize:'12px',fontWeight:500,color:'#111'}}>{c.userName} <span style={{color:'#bbb',fontWeight:400}}>{fmtT(c.createdAt)}</span></div>
+                    <div style={{fontSize:'13px',color:'#111',marginTop:'2px'}}>{c.text}</div>
                   </div>
                 </div>
               ))}
             </div>
             {isAdmin&&(
-              <div className="flex gap-2">
-                <input className={`${IS} flex-1`} placeholder="Añadir comentario…" value={comment}
-                  onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendComment()}/>
-                <B sm onMouseDown={sendComment} disabled={!comment.trim()}>Enviar</B>
+              <div style={{display:'flex',gap:'8px'}}>
+                <input className={IS} style={{flex:1}} placeholder="Añadir comentario…" value={comment} onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendComment()}/>
+                <Btn sm onClick={sendComment} disabled={!comment.trim()}>Enviar</Btn>
               </div>
             )}
           </div>
         </Modal>
       )}
 
-      {/* create modal */}
+      {/* Create modal */}
       {show&&(
         <Modal title="Nuevo reporte diario" onClose={()=>setShow(false)} wide>
-          <div className="flex gap-3">
-            <Inp label="Fecha *" type="date" value={f.date} onChange={upd('date')} half/>
-            <F label="Proyecto" half>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <Inp label="Fecha *" type="date" value={f.date} onChange={upd('date')}/>
+            <div className="mb-4">
+              <Lbl t="Proyecto"/>
               <select className={`${IS} appearance-none`} value={f.projectId} onChange={upd('projectId')}>
                 <option value="">— Sin proyecto —</option>
                 {Object.entries(projects).filter(([,p])=>p.ownerId===user.id).map(([pid,p])=>(
                   <option key={pid} value={pid}>{p.name}</option>
                 ))}
               </select>
-            </F>
+            </div>
           </div>
           <Inp label="Horas trabajadas" type="number" value={f.hoursWorked} onChange={upd('hoursWorked')} placeholder="0"/>
-          <TA label="Tareas realizadas hoy" value={f.tasks} onChange={upd('tasks')} placeholder="Describe el trabajo completado hoy…"/>
+          <TA label="Tareas realizadas hoy" value={f.tasks} onChange={upd('tasks')} placeholder="Describe el trabajo completado…"/>
           <TA label="Problemas encontrados" value={f.problems} onChange={upd('problems')} placeholder="Errores, bloqueos, obstáculos…"/>
           <TA label="Notas y observaciones" value={f.notes} onChange={upd('notes')} placeholder="Ideas, aprendizajes, próximos pasos…"/>
-          <div className="flex gap-3 pt-2">
-            <B v="ghost" full onMouseDown={()=>setShow(false)}>Cancelar</B>
-            <B full onMouseDown={create}>Enviar reporte</B>
+          <div style={{display:'flex',gap:'12px',paddingTop:'8px'}}>
+            <Btn v="ghost" full onClick={()=>setShow(false)}>Cancelar</Btn>
+            <Btn full onClick={create}>Enviar reporte</Btn>
           </div>
         </Modal>
       )}
@@ -944,27 +935,27 @@ const Team=({user,projects,allTasks})=>{
   const others=Object.entries(projects).filter(([,p])=>p.ownerId!==user.id);
   return(
     <div className="fade-in">
-      <div className="mb-7 pb-6 border-b border-paper-border">
-        <h1 className="garamond text-4xl font-medium text-ink">Equipo</h1>
-        <p className="text-sm text-ink-muted mt-1">Vista general — sin acceso a tareas, tiempos ni costes de otros.</p>
+      <div style={{marginBottom:'28px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
+        <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Equipo</h1>
+        <p style={{fontSize:'13px',color:'#888',marginTop:'4px'}}>Vista general — sin acceso a tareas, tiempos ni costes de otros.</p>
       </div>
       {others.length===0?(
-        <div className="border border-paper-border rounded-lg py-16 text-center">
-          <p className="text-sm text-ink-muted">Ningún compañero tiene proyectos activos aún.</p>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'64px',textAlign:'center'}}>
+          <p style={{fontSize:'13px',color:'#888'}}>Ningún compañero tiene proyectos activos aún.</p>
         </div>
       ):(
-        <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-          {others.map(([pid,p])=>{
-            const v=pct(allTasks[pid]||{});
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+          {others.map(([pid,p],i)=>{
+            const v=calcPct(allTasks[pid]||{});
             return(
-              <div key={pid} className="bg-white flex items-center gap-5 px-5 py-4 hover:bg-paper-warm transition-colors">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-ink">{p.name}</div>
-                  <div className="text-xs text-ink-muted mt-0.5">{p.ownerName}</div>
+              <div key={pid} style={{display:'flex',alignItems:'center',gap:'20px',padding:'14px 20px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:500,color:'#111'}}>{p.name}</div>
+                  <div style={{fontSize:'12px',color:'#888',marginTop:'2px'}}>{p.ownerName}</div>
                 </div>
-                <div className="w-28">
-                  <div className="mb-1"><Bar v={v}/></div>
-                  <div className="text-xs text-ink-muted font-mono text-right">{v}%</div>
+                <div style={{width:'96px'}}>
+                  <Bar v={v}/>
+                  <div style={{fontSize:'11px',color:'#888',fontFamily:'monospace',textAlign:'right',marginTop:'2px'}}>{v}%</div>
                 </div>
                 <Tag s={p.status}/>
               </div>
@@ -976,163 +967,134 @@ const Team=({user,projects,allTasks})=>{
   );
 };
 
-/* ── OVERVIEW (admin/gerencia) ── */
+/* ── OVERVIEW ── */
 const Overview=({user,projects,allTasks,reports,users})=>{
   const cDonut=useRef(null),cBar=useRef(null);
   const iD=useRef(null),iB=useRef(null);
   const pa=Object.entries(projects);
-  const avgPct=pa.length?Math.round(pa.reduce((a,[pid])=>a+pct(allTasks[pid]||{}),0)/pa.length):0;
+  const avgPct=pa.length?Math.round(pa.reduce((a,[pid])=>a+calcPct(allTasks[pid]||{}),0)/pa.length):0;
   const today=new Date().toDateString();
 
   useEffect(()=>{
     if(!cDonut.current)return;
     if(iD.current)iD.current.destroy();
     const sts=['Activo','En progreso','Pausado','Finalizado','Bloqueado'];
-    iD.current=new Chart(cDonut.current,{
-      type:'doughnut',
-      data:{
-        labels:sts,
-        datasets:[{
-          data:sts.map(s=>pa.filter(([,p])=>p.status===s).length),
-          backgroundColor:['#111111','#444444','#888888','#2a7a4b','#c0392b'],
-          borderWidth:3,borderColor:'#fff',hoverOffset:3
-        }]
-      },
-      options:{
-        responsive:true,maintainAspectRatio:false,cutout:'68%',
-        plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:12,color:'#888'}}}
-      }
-    });
+    iD.current=new Chart(cDonut.current,{type:'doughnut',
+      data:{labels:sts,datasets:[{data:sts.map(s=>pa.filter(([,p])=>p.status===s).length),
+        backgroundColor:['#111','#444','#888','#2a7a4b','#c0392b'],borderWidth:3,borderColor:'#fff',hoverOffset:3}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+        plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:12,color:'#888'}}}}});
   },[projects]);
 
   useEffect(()=>{
     if(!cBar.current||!pa.length)return;
     if(iB.current)iB.current.destroy();
-    const labels=pa.map(([,p])=>p.name.length>22?p.name.slice(0,22)+'…':p.name);
-    const data=pa.map(([pid])=>pct(allTasks[pid]||{}));
-    iB.current=new Chart(cBar.current,{
-      type:'bar',
-      data:{
-        labels,
-        datasets:[{
-          data,
-          backgroundColor:data.map(v=>v===100?'#2a7a4b':'#111'),
-          borderRadius:2,barThickness:14
-        }]
-      },
-      options:{
-        indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    const data=pa.map(([pid])=>calcPct(allTasks[pid]||{}));
+    iB.current=new Chart(cBar.current,{type:'bar',
+      data:{labels:pa.map(([,p])=>p.name.length>22?p.name.slice(0,22)+'…':p.name),
+        datasets:[{data,backgroundColor:data.map(v=>v===100?'#2a7a4b':'#111'),borderRadius:2,barThickness:14}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false}},
-        scales:{
-          x:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:10,family:'Inter'},color:'#bbb'},grid:{color:'#f0f0ee'}},
-          y:{grid:{display:false},ticks:{font:{size:10,family:'Inter'},color:'#888'}}
-        }
-      }
-    });
+        scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:10,family:'Inter'},color:'#bbb'},grid:{color:'#f0f0ee'}},
+          y:{grid:{display:false},ticks:{font:{size:10,family:'Inter'},color:'#888'}}}}});
   },[projects,allTasks]);
 
   const kpis=[
-    {n:pa.length,             l:'Proyectos'},
-    {n:`${avgPct}%`,          l:'Avance promedio'},
-    {n:Object.values(users||{}).filter(u=>u.role==='empleado').length, l:'Empleados'},
-    {n:Object.values(reports||{}).filter(r=>new Date(r.date).toDateString()===today).length, l:'Reportes hoy'},
+    {n:pa.length,l:'Proyectos'},
+    {n:`${avgPct}%`,l:'Avance promedio'},
+    {n:Object.values(users||{}).filter(u=>u.role==='empleado').length,l:'Empleados'},
+    {n:Object.values(reports||{}).filter(r=>new Date(r.date).toDateString()===today).length,l:'Reportes hoy'},
   ];
 
   return(
     <div className="fade-in">
-      <div className="mb-7 pb-6 border-b border-paper-border">
-        <h1 className="garamond text-4xl font-medium text-ink">Dashboard</h1>
-        <p className="text-sm text-ink-muted mt-1">Visibilidad completa del equipo en tiempo real.</p>
+      <div style={{marginBottom:'28px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
+        <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Dashboard</h1>
+        <p style={{fontSize:'13px',color:'#888',marginTop:'4px'}}>Visibilidad completa del equipo en tiempo real.</p>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-paper-border border border-paper-border rounded-lg overflow-hidden mb-7">
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden',marginBottom:'24px'}}>
         {kpis.map((k,i)=>(
-          <div key={i} className="bg-white px-5 py-5">
-            <div className="garamond text-3xl font-medium text-ink mb-1">{k.n}</div>
-            <div className="text-xs text-ink-muted">{k.l}</div>
+          <div key={i} style={{background:'#fff',padding:'20px 24px'}}>
+            <div className="garamond" style={{fontSize:'36px',fontWeight:500,color:'#111',marginBottom:'4px'}}>{k.n}</div>
+            <div style={{fontSize:'12px',color:'#888'}}>{k.l}</div>
           </div>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-7">
-        <div className="lg:col-span-2 border border-paper-border rounded-lg p-5 bg-white">
-          <h3 className="garamond text-lg font-medium text-ink mb-0.5">Por estado</h3>
-          <p className="text-xs text-ink-muted mb-4">Distribución de proyectos</p>
-          <div style={{height:180}}><canvas ref={cDonut}/></div>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 3fr',gap:'16px',marginBottom:'24px'}}>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'20px',background:'#fff'}}>
+          <div className="garamond" style={{fontSize:'18px',fontWeight:500,marginBottom:'4px'}}>Por estado</div>
+          <div style={{fontSize:'12px',color:'#888',marginBottom:'16px'}}>Distribución de proyectos</div>
+          <div style={{height:'180px'}}><canvas ref={cDonut}/></div>
         </div>
-        <div className="lg:col-span-3 border border-paper-border rounded-lg p-5 bg-white">
-          <h3 className="garamond text-lg font-medium text-ink mb-0.5">Avance por proyecto</h3>
-          <p className="text-xs text-ink-muted mb-4">Verde = 100% completado</p>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'20px',background:'#fff'}}>
+          <div className="garamond" style={{fontSize:'18px',fontWeight:500,marginBottom:'4px'}}>Avance por proyecto</div>
+          <div style={{fontSize:'12px',color:'#888',marginBottom:'16px'}}>Verde = 100% completado</div>
           <div style={{height:Math.max(pa.length*28+20,80)}}><canvas ref={cBar}/></div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border border-paper-border rounded-lg overflow-hidden">
-        <div className="px-5 py-3 bg-paper-soft border-b border-paper-border">
-          <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest">Todos los proyectos</span>
+      <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+        <div style={{padding:'12px 20px',background:'#f4f4f2',borderBottom:'1px solid #e4e4e0'}}>
+          <span style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px'}}>Todos los proyectos</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-paper-border bg-white">
-                {['Proyecto','Responsable','Estado','Avance','Tareas'].map(h=>(
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold text-ink-muted uppercase tracking-widest">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-paper-border">
-              {pa.length===0&&(
-                <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-ink-muted">Sin proyectos registrados.</td></tr>
-              )}
-              {pa.map(([pid,p])=>{
-                const tasks=allTasks[pid]||{};
-                const v=pct(tasks);
-                const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
-                return(
-                  <tr key={pid} className="bg-white hover:bg-paper-warm transition-colors">
-                    <td className="px-5 py-3.5 font-medium text-ink text-sm">{p.name}</td>
-                    <td className="px-5 py-3.5 text-sm text-ink-muted">{p.ownerName}</td>
-                    <td className="px-5 py-3.5"><Tag s={p.status}/></td>
-                    <td className="px-5 py-3.5">
-                      <div className="w-24 mb-1"><Bar v={v}/></div>
-                      <span className="text-xs text-ink-muted font-mono">{v}%</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-ink-muted font-mono">{done}/{Object.keys(tasks).length}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr style={{borderBottom:'1px solid #e4e4e0',background:'#fff'}}>
+              {['Proyecto','Responsable','Estado','Avance','Tareas'].map(h=>(
+                <th key={h} style={{padding:'10px 20px',textAlign:'left',fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px'}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pa.length===0&&<tr><td colSpan={5} style={{padding:'40px',textAlign:'center',fontSize:'13px',color:'#888'}}>Sin proyectos.</td></tr>}
+            {pa.map(([pid,p],i)=>{
+              const tasks=allTasks[pid]||{};
+              const v=calcPct(tasks);
+              const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
+              return(
+                <tr key={pid} style={{borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+                  <td style={{padding:'12px 20px',fontWeight:500,color:'#111'}}>{p.name}</td>
+                  <td style={{padding:'12px 20px',fontSize:'13px',color:'#888'}}>{p.ownerName}</td>
+                  <td style={{padding:'12px 20px'}}><Tag s={p.status}/></td>
+                  <td style={{padding:'12px 20px'}}>
+                    <div style={{width:'80px',marginBottom:'3px'}}><Bar v={v}/></div>
+                    <span style={{fontSize:'11px',color:'#888',fontFamily:'monospace'}}>{v}%</span>
+                  </td>
+                  <td style={{padding:'12px 20px',fontSize:'12px',color:'#888',fontFamily:'monospace'}}>{done}/{Object.keys(tasks).length}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
 /* ── USERS ── */
-const Users=({users})=>{
+const Users=({users,onDelete})=>{
   const all=[ADMIN,...Object.values(users)];
   const rl={admin:'Admin',gerencia:'Gerencia',empleado:'Empleado'};
   return(
     <div className="fade-in">
-      <div className="mb-7 pb-6 border-b border-paper-border">
-        <h1 className="garamond text-4xl font-medium text-ink">Usuarios</h1>
-        <p className="text-sm text-ink-muted mt-1">{all.length} usuario{all.length!==1?'s':''} registrados</p>
+      <div style={{marginBottom:'28px',paddingBottom:'24px',borderBottom:'1px solid #e4e4e0'}}>
+        <h1 className="garamond" style={{fontSize:'38px',fontWeight:500,color:'#111'}}>Usuarios</h1>
+        <p style={{fontSize:'13px',color:'#888',marginTop:'4px'}}>{all.length} usuario{all.length!==1?'s':''} registrados</p>
       </div>
-      <div className="border border-paper-border rounded-lg overflow-hidden divide-y divide-paper-border">
-        {all.map(u=>(
-          <div key={u.id} className="bg-white flex items-center gap-4 px-5 py-3.5 hover:bg-paper-warm transition-colors">
-            <div className="w-8 h-8 rounded-full bg-paper-soft border border-paper-border flex items-center justify-center text-sm font-medium text-ink-muted flex-shrink-0">
+      <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden'}}>
+        {all.map((u,i)=>(
+          <div key={u.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 20px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+            <div style={{width:'32px',height:'32px',borderRadius:'50%',background:'#f4f4f2',border:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:600,color:'#888',flexShrink:0}}>
               {u.name[0].toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-ink text-sm">{u.name}</div>
-              <div className="text-xs text-ink-muted">{u.company||'Inverfin'}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:500,color:'#111',fontSize:'14px'}}>{u.name}</div>
+              <div style={{fontSize:'11px',color:'#bbb'}}>{u.company||'Inverfin'}</div>
             </div>
-            <span className="text-xs text-ink-muted border border-paper-border px-2.5 py-1 rounded">{rl[u.role]||u.role}</span>
+            <span style={{fontSize:'11px',color:'#888',border:'1px solid #e4e4e0',borderRadius:'6px',padding:'3px 10px'}}>{rl[u.role]||u.role}</span>
+            {u.id!=='admin'&&<button onClick={()=>confirm('¿Eliminar usuario?')&&window.DB.setUser(u.id,null)} style={{fontSize:'16px',color:'#bbb',background:'none',border:'none',cursor:'pointer',lineHeight:1}}>×</button>}
           </div>
         ))}
       </div>
@@ -1140,77 +1102,41 @@ const Users=({users})=>{
   );
 };
 
-/* ── NOTIF PANEL ── */
-const NotifPanel=({reports,onClose})=>{
-  const recent=Object.values(reports||{})
-    .sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))
-    .slice(0,15);
-  return(
-    <div className="fixed inset-0 z-50 flex items-start justify-end pt-16 pr-4 md:pt-4"
-      onMouseDown={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="bg-white border border-paper-border rounded-lg shadow-xl w-72 overflow-hidden scale-in">
-        <div className="px-4 py-3 border-b border-paper-border flex items-center justify-between">
-          <span className="garamond text-base font-medium text-ink">Notificaciones</span>
-          <button onMouseDown={onClose} className="text-ink-faint hover:text-ink text-lg leading-none">×</button>
-        </div>
-        <div className="max-h-80 overflow-y-auto divide-y divide-paper-border">
-          {recent.length===0&&<div className="px-4 py-8 text-sm text-ink-muted text-center">Sin notificaciones.</div>}
-          {recent.map((r,i)=>(
-            <div key={i} className="px-4 py-3 hover:bg-paper-warm transition-colors">
-              <p className="text-xs text-ink"><span className="font-medium">{r.userName}</span> envió un reporte</p>
-              <p className="text-[10px] text-ink-faint mt-0.5">{fmtD(r.date)}{r.projectName?' · '+r.projectName:''}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ══════════════════════════════════════
-   MAIN APP
-══════════════════════════════════════ */
+/* ══════════════════════════════════
+   APP
+══════════════════════════════════ */
 const App=()=>{
-  const[fbReady,   setFbReady]   =useState(false);
-  const[splash,    setSplash]    =useState(true);
-  const[user,      setUser]      =useState(null);
-  const[tab,       setTab]       =useState('dashboard');
-  const[openProj,  setOpenProj]  =useState(null);
-  const[projects,  setProjects]  =useState({});
-  const[allTasks,  setAllTasks]  =useState({});
-  const[reports,   setReports]   =useState({});
-  const[users,     setUsers]     =useState({});
-  const[synced,    setSynced]    =useState(false);
-  const[notifs,    setNotifs]    =useState(0);
-  const[showNotif, setShowNotif] =useState(false);
+  const[ready,   setReady]   =useState(false);
+  const[splash,  setSplash]  =useState(true);
+  const[user,    setUser]    =useState(null);
+  const[tab,     setTab]     =useState('dashboard');
+  const[openProj,setOpenProj]=useState(null);
+  const[projects,setProjects]=useState({});
+  const[allTasks,setAllTasks]=useState({});
+  const[reports, setReports] =useState({});
+  const[users,   setUsers]   =useState({});
+  const[synced,  setSynced]  =useState(false);
+  const[notifs,  setNotifs]  =useState(0);
+  const[showNotif,setShowNotif]=useState(false);
 
-  /* firebase ready */
   useEffect(()=>{
-    const h=()=>{setFbReady(true);setSynced(true);setTimeout(()=>setSplash(false),1200)};
+    const h=()=>{setReady(true);setSynced(true);setTimeout(()=>setSplash(false),1000)};
     window.addEventListener('firebase-ready',h);
-    setTimeout(()=>setSplash(false),5000); // fallback
+    setTimeout(()=>{setSplash(false)},4000);
     return()=>window.removeEventListener('firebase-ready',h);
   },[]);
 
-  /* live data after login */
   useEffect(()=>{
-    if(!fbReady||!user)return;
+    if(!ready||!user)return;
     const subs=[];
     subs.push(window.DB.onProjects(d=>setProjects(d||{})));
-    subs.push(window.DB.onReports(d=>{
-      const rd=d||{};
-      setReports(rd);
-      setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);
-    }));
+    subs.push(window.DB.onReports(d=>{const rd=d||{};setReports(rd);setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);}));
     subs.push(window.DB.onUsers(d=>setUsers(d||{})));
-    /* tasks — live listener on /tasks so we catch all changes */
-    const{getDatabase,ref,onValue}=window.__fbModules||{};
-    /* fallback: poll every 10s if live not available */
-    const loadTasks=()=>window.DB.snapTasks().then(d=>setAllTasks(d||{}));
-    loadTasks();
-    const iv=setInterval(loadTasks,10000);
+    const loadT=()=>window.DB.snapTasks().then(d=>setAllTasks(d||{}));
+    loadT();
+    const iv=setInterval(loadT,8000);
     return()=>{subs.forEach(u=>u());clearInterval(iv)};
-  },[fbReady,user]);
+  },[ready,user]);
 
   const isAdmin=user?.role==='admin'||user?.role==='gerencia';
 
@@ -1222,83 +1148,84 @@ const App=()=>{
     ...(isAdmin?[{id:'overview',label:'Dashboard',icon:'◈'},{id:'users',label:'Usuarios',icon:'◉'}]:[]),
   ]:[];
 
-  const goTab=t=>{
-    setTab(t);
-    setOpenProj(null); // always clear detail when switching tabs
-  };
+  const goTab=t=>{setTab(t);setOpenProj(null)};
 
-  const login=u=>{
-    setUser(u);
-    setTab(isAdmin?'overview':'dashboard');
-  };
+  const login=u=>{setUser(u);setTab((u.role==='admin'||u.role==='gerencia')?'overview':'dashboard')};
   const logout=()=>{setUser(null);setTab('dashboard');setOpenProj(null)};
 
-  if(splash) return <Splash/>;
-  if(!user)  return <Auth onLogin={u=>{setUser(u);setTab((u.role==='admin'||u.role==='gerencia')?'overview':'dashboard')}}/>;
+  if(splash)return <Splash/>;
+  if(!user)return <Auth onLogin={login}/>;
+
+  const activeTab=openProj?'projects':tab;
 
   return(
-    <div className="min-h-screen bg-white flex flex-col md:flex-row">
-      {/* sidebar — desktop */}
-      <Sidebar user={user} tab={openProj?'projects':tab} setTab={goTab} tabs={TABS}
-        synced={synced} notifs={notifs} onNotif={()=>setShowNotif(v=>!v)} onLogout={logout}/>
-
-      {/* main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* mobile header */}
-        <MobileHeader user={user} tab={openProj?'projects':tab} tabs={TABS} setTab={goTab}
-          notifs={notifs} onNotif={()=>setShowNotif(v=>!v)} onLogout={logout}/>
-
-        {/* scrollable content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto px-5 sm:px-8 lg:px-12 py-8 pb-28 md:pb-12">
-
-            {/* Projects tab renders its own detail internally */}
-            {tab==='projects'&&(
-              <Projects user={user} projects={projects} allTasks={allTasks}
-                openProj={openProj} setOpenProj={setOpenProj}/>
-            )}
-            {tab==='dashboard'&&!isAdmin&&(
-              <Dashboard user={user} projects={projects} allTasks={allTasks}
-                reports={reports} setTab={goTab} setOpenProj={setOpenProj}/>
-            )}
-            {tab==='team'&&!isAdmin&&(
-              <Team user={user} projects={projects} allTasks={allTasks}/>
-            )}
-            {tab==='reports'&&(
-              <Reports user={user} projects={projects} reports={reports}/>
-            )}
-            {tab==='overview'&&isAdmin&&(
-              <Overview user={user} projects={projects} allTasks={allTasks}
-                reports={reports} users={users}/>
-            )}
-            {tab==='users'&&isAdmin&&(
-              <Users users={users}/>
-            )}
-          </div>
-        </main>
-
-        {/* footer — desktop only */}
-        <footer className="hidden md:flex items-center justify-between px-8 py-4 border-t border-paper-border">
-          <div className="flex items-center gap-2.5">
-            <img src={LOGO} className="w-5 h-5 rounded opacity-50" alt=""/>
-            <span className="garamond text-sm text-ink-muted">InverWork <span className="text-ink-faint">· Inverfin Holding</span></span>
-          </div>
-          <span className="text-xs text-ink-faint italic">Owned by Jesús Santiago · © 2026</span>
-        </footer>
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'row',background:'#fff'}}>
+      {/* Sidebar desktop */}
+      <div className="hidden md:block">
+        <Sidebar user={user} tab={activeTab} setTab={goTab} tabs={TABS} synced={synced} notifs={notifs} onNotif={()=>setShowNotif(v=>!v)} onLogout={logout}/>
       </div>
 
-      {/* mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-paper-border flex">
+      {/* Main */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        {/* Mobile header */}
+        <div className="md:hidden">
+          <MobileHeader user={user} tab={activeTab} tabs={TABS} setTab={goTab} notifs={notifs} onNotif={()=>setShowNotif(v=>!v)} onLogout={logout}/>
+        </div>
+
+        {/* Content — simple div scroll, NOT overflow:hidden */}
+        <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+          <div style={{maxWidth:'960px',margin:'0 auto',padding:'32px 32px 80px'}}>
+            {tab==='projects'&&<Projects user={user} projects={projects} allTasks={allTasks} openProj={openProj} setOpenProj={setOpenProj}/>}
+            {tab==='dashboard'&&!isAdmin&&<Dashboard user={user} projects={projects} allTasks={allTasks} reports={reports} onGo={(t,pid,p)=>{if(pid){setOpenProj({id:pid,data:p});setTab('projects')}else goTab(t)}}/>}
+            {tab==='team'&&!isAdmin&&<Team user={user} projects={projects} allTasks={allTasks}/>}
+            {tab==='reports'&&<Reports user={user} projects={projects} reports={reports}/>}
+            {tab==='overview'&&isAdmin&&<Overview user={user} projects={projects} allTasks={allTasks} reports={reports} users={users}/>}
+            {tab==='users'&&isAdmin&&<Users users={users}/>}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="hidden md:flex" style={{alignItems:'center',justifyContent:'space-between',padding:'12px 32px',borderTop:'1px solid #e4e4e0',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <img src={LOGO} style={{width:'18px',height:'18px',borderRadius:'4px',opacity:.4}} alt=""/>
+            <span className="garamond" style={{fontSize:'13px',color:'#888'}}>InverWork <span style={{color:'#ccc'}}>· Inverfin Holding</span></span>
+          </div>
+          <span style={{fontSize:'11px',color:'#ccc',fontStyle:'italic'}}>Owned by Jesús Santiago · © 2025</span>
+        </div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <div className="md:hidden" style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:'#fff',borderTop:'1px solid #e4e4e0',display:'flex'}}>
         {TABS.map(t=>(
-          <button key={t.id} onMouseDown={()=>goTab(t.id)}
-            className={`flex-1 py-3 text-[10px] font-medium uppercase tracking-wide border-t-2 transition-all ${(openProj?'projects':tab)===t.id?'border-ink text-ink':'border-transparent text-ink-faint hover:text-ink-muted'}`}>
-            <div className="text-base mb-0.5">{t.icon}</div>
+          <button key={t.id} onClick={()=>goTab(t.id)}
+            style={{flex:1,padding:'10px 4px',fontSize:'10px',fontWeight:500,border:'none',borderTop:`2px solid ${activeTab===t.id?'#111':'transparent'}`,color:activeTab===t.id?'#111':'#bbb',background:'transparent',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',textTransform:'uppercase',letterSpacing:'0.5px'}}>
+            <span style={{fontSize:'16px'}}>{t.icon}</span>
             {t.label}
           </button>
         ))}
-      </nav>
+      </div>
 
-      {showNotif&&<NotifPanel reports={reports} onClose={()=>setShowNotif(false)}/>}
+      {/* Notif panel */}
+      {showNotif&&createPortal(
+        <div style={{position:'fixed',inset:0,zIndex:9998}} onClick={()=>setShowNotif(false)}>
+          <div style={{position:'absolute',top:'60px',right:'16px',width:'280px',background:'#fff',border:'1px solid #e4e4e0',borderRadius:'12px',boxShadow:'0 8px 32px rgba(0,0,0,0.12)',overflow:'hidden'}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'14px 16px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span className="garamond" style={{fontSize:'16px',fontWeight:500}}>Notificaciones</span>
+              <button onClick={()=>setShowNotif(false)} style={{fontSize:'18px',color:'#888',background:'none',border:'none',cursor:'pointer'}}>×</button>
+            </div>
+            <div style={{maxHeight:'280px',overflowY:'auto'}}>
+              {Object.values(reports).length===0&&<div style={{padding:'32px',textAlign:'center',fontSize:'13px',color:'#888'}}>Sin notificaciones.</div>}
+              {Object.values(reports).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,12).map((r,i)=>(
+                <div key={i} style={{padding:'10px 16px',borderTop:i>0?'1px solid #e4e4e0':'none'}}>
+                  <p style={{fontSize:'12px',color:'#111'}}><span style={{fontWeight:500}}>{r.userName}</span> envió un reporte</p>
+                  <p style={{fontSize:'11px',color:'#bbb',marginTop:'2px'}}>{fmtD(r.date)}{r.projectName?' · '+r.projectName:''}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
