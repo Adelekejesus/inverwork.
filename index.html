@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%;font-family:'Inter',system-ui,sans-serif;background:#f0f2f5;color:#1a1d23;-webkit-font-smoothing:antialiased}
@@ -980,7 +981,7 @@ const Team=({user,projects,allTasks})=>{
 };
 
 /* ─ OVERVIEW ─ */
-const Overview=({projects,allTasks,reports,users})=>{
+const Overview=({projects,allTasks,reports,users,onExport})=>{
   const cD=useRef(null),cB=useRef(null),iD=useRef(null),iB=useRef(null);
   const pa=Object.entries(projects);
   const avg=pa.length?Math.round(pa.reduce((s,[pid])=>s+pct(allTasks[pid]||{}),0)/pa.length):0;
@@ -1009,9 +1010,18 @@ const Overview=({projects,allTasks,reports,users})=>{
 
   return(
     <div className="fi">
-      <div style={{marginBottom:'24px',paddingBottom:'22px',borderBottom:'1px solid #e4e4e0'}}>
-        <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Dashboard</div>
-        <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>Visibilidad completa del equipo en tiempo real.</div>
+      <div style={{marginBottom:'24px',paddingBottom:'22px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'16px',flexWrap:'wrap'}}>
+        <div>
+          <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Dashboard</div>
+          <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>Visibilidad completa del equipo en tiempo real.</div>
+        </div>
+        <button onClick={()=>onExport()} data-export-btn="1"
+          style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',background:'#fff',border:'1.5px solid #e4e4e0',borderRadius:'8px',fontSize:'13px',fontWeight:600,color:'#1a1d23',cursor:'pointer',fontFamily:'inherit',transition:'all .16s',letterSpacing:'-.01em'}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='#2D8A58';e.currentTarget.style.color='#2D8A58';e.currentTarget.style.background='#f0fdf4'}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='#e4e4e0';e.currentTarget.style.color='#1a1d23';e.currentTarget.style.background='#fff'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar Excel
+        </button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden',marginBottom:'20px'}}>
         {kpis.map((k,i)=>(
@@ -1095,6 +1105,178 @@ const Users=({users})=>{
 };
 
 /* ══════════════════════════════════
+   EXPORT EXCEL
+══════════════════════════════════ */
+const exportExcel = async (projects, allTasks, reports, users) => {
+  const EX = window.ExcelJS;
+  if (!EX) { alert('ExcelJS no cargado'); return; }
+  const btn = document.querySelector('[data-export-btn]');
+  if (btn) { btn.textContent = 'Generando...'; btn.disabled = true; }
+  try {
+    const costs = {};
+    await Promise.all(Object.keys(projects).map(pid =>
+      new Promise(res => { const u = window.FB.onCosts(pid, c => { u(); costs[pid]=c||{}; res(); }); })
+    ));
+    const wb = new EX.Workbook();
+    wb.creator = 'InverWork — Inverfin Holding'; wb.created = new Date();
+    const pa = Object.entries(projects);
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+    const fmtD = d => d ? new Date(d).toLocaleDateString('es-ES') : '';
+    const pct = (tsk) => { const a=Object.values(tsk||{}); return a.length?Math.round(a.filter(t=>t.status==='Completado').length/a.length*100):0; };
+    const P = { sb:'1E2433',sb2:'2D3748',blue:'4F73F5',green:'2D8A58',green2:'10B981',amber:'D97706',purple:'6B4FA8',gold:'FFC000',ink:'1A1D23',muted:'6B7280',input:'0070C0',formula:'000000',even:'F7F8FA',odd:'FFFFFF',border:'D0D5DD' };
+    const fill = hex => ({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}});
+    const fnt = (bold=false,color='000000',size=9,italic=false) => ({name:'Arial',bold,color:{argb:'FF'+color},size,italic});
+    const aln = (horizontal='left',wrapText=false) => ({horizontal,vertical:'middle',wrapText});
+    const bdr = () => ({top:{style:'thin',color:{argb:'FFD0D5DD'}},bottom:{style:'thin',color:{argb:'FFD0D5DD'}},left:{style:'thin',color:{argb:'FFD0D5DD'}},right:{style:'thin',color:{argb:'FFD0D5DD'}}});
+    const FCFA='#,##0 "FCFA"', HRS='#,##0.0 "h"', PCT='0%', PCT1='0.0%';
+    const addHeaderRow = (ws,headers,bg,rowH=20) => {
+      const row=ws.addRow(headers); row.height=rowH;
+      headers.forEach((_,i)=>{ const c=row.getCell(i+1); c.font=fnt(true,'FFFFFF',9); c.fill=fill(bg); c.alignment=aln('center'); c.border=bdr(); });
+      return row;
+    };
+    /* HOJA 1 — RESUMEN */
+    const ws1=wb.addWorksheet('Resumen Ejecutivo',{properties:{tabColor:{argb:'FF4F73F5'}}});
+    ws1.views=[{showGridLines:false}];
+    const tot_costs=pa.reduce((s,[pid])=>s+Object.values(costs[pid]||{}).reduce((ss,c)=>ss+(+c.amount||0),0),0);
+    const tot_hrs=pa.reduce((s,[pid])=>s+Object.values(allTasks[pid]||{}).reduce((ss,t)=>ss+(+t.timeSpent||0)/60,0),0);
+    const completados=pa.filter(([,p])=>p.status==='Finalizado').length;
+    const activos=pa.filter(([,p])=>['Activo','En progreso'].includes(p.status)).length;
+    const avg_pct=pa.length?Math.round(pa.reduce((s,[pid])=>s+pct(allTasks[pid]||{}),0)/pa.length):0;
+    ws1.mergeCells('A1:M1'); ws1.getRow(1).height=44;
+    const b1=ws1.getCell('A1'); b1.value='INVERFIN HOLDING  ·  InverWork — Informe General de Proyectos';
+    b1.font=fnt(true,'FFFFFF',15); b1.fill=fill(P.sb); b1.alignment=aln('center');
+    ws1.mergeCells('A2:M2'); ws1.getRow(2).height=18;
+    const b2=ws1.getCell('A2'); b2.value=`Generado: ${todayStr}   |   Período: Acumulado   |   Empresa: Inverfin Holding`;
+    b2.font=fnt(false,'AAAAAA',9,true); b2.fill=fill(P.sb2); b2.alignment=aln('center');
+    ws1.mergeCells('A3:M3'); ws1.getRow(3).height=8; ws1.getCell('A3').fill=fill('EEEEEE');
+    ws1.getRow(4).height=18; ws1.getRow(5).height=40;
+    const kpis=[['Total Proyectos',pa.length,null,P.blue,'A','B'],['Activos',activos,null,P.sb,'C','D'],['Finalizados',completados,null,P.green,'E','F'],['Avance Promedio',avg_pct/100,PCT,P.sb,'G','H'],['Total Costes',tot_costs,FCFA,P.amber,'I','J'],['Horas Totales',Math.round(tot_hrs*10)/10,HRS,P.sb,'K','M']];
+    kpis.forEach(([lbl,val,fmt,bg,sc,ec])=>{
+      ws1.mergeCells(`${sc}4:${ec}4`); ws1.mergeCells(`${sc}5:${ec}5`);
+      const cl=ws1.getCell(`${sc}4`); cl.value=lbl; cl.font=fnt(true,'FFFFFF',9); cl.fill=fill(bg); cl.alignment=aln('center');
+      const cv=ws1.getCell(`${sc}5`); cv.value=val; cv.font=fnt(true,'FFFFFF',20); cv.fill=fill(bg); cv.alignment=aln('center');
+      if(fmt) cv.numFmt=fmt;
+      ['4','5'].forEach(r=>{ for(let col=sc.charCodeAt(0);col<=ec.charCodeAt(0);col++){ ws1.getCell(`${String.fromCharCode(col)}${r}`).fill=fill(bg); } });
+    });
+    ws1.mergeCells('A6:M6'); ws1.getRow(6).height=8; ws1.getCell('A6').fill=fill('F4F4F2');
+    addHeaderRow(ws1,['#','Proyecto','Responsable','Empresa','Estado','F.Inicio','F.Fin Est.','Avance','Tareas','Hechas','Horas','Costes (FCFA)','Descripción'],P.blue,22);
+    pa.forEach(([pid,p],i)=>{
+      const ptsk=allTasks[pid]||{}; const pcst=Object.values(costs[pid]||{});
+      const v=pct(ptsk); const allT=Object.values(ptsk); const done=allT.filter(t=>t.status==='Completado').length;
+      const hrs=allT.reduce((s,t)=>s+(+t.timeSpent||0)/60,0); const costSum=pcst.reduce((s,c)=>s+(+c.amount||0),0);
+      const row=ws1.addRow([i+1,p.name,p.ownerName||'',p.company||'Inverfin',p.status||'',fmtD(p.startDate),fmtD(p.endDate),v/100,allT.length,done,Math.round(hrs*10)/10,costSum,p.description||'']);
+      row.height=17; const bg=i%2===0?P.even:P.odd;
+      const fmts=[null,null,null,null,null,null,null,PCT,null,null,HRS,FCFA,null];
+      const fcs=[P.muted,P.ink,P.muted,P.muted,P.muted,P.muted,P.muted,v===100?P.green:P.input,P.muted,P.muted,P.input,P.input,P.muted];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(idx<=2||idx===13?'left':'center'); if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+    });
+    const tRow1=ws1.addRow(['TOTALES','','','','','','','',pa.length>0?Math.round(pa.reduce((s,[pid])=>s+Object.values(allTasks[pid]||{}).length,0)):0,'','',tot_costs,'']);
+    tRow1.height=20; ws1.mergeCells(`A${tRow1.number}:H${tRow1.number}`);
+    tRow1.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===12) c.numFmt=FCFA; });
+    ws1.columns=[{width:5},{width:26},{width:18},{width:16},{width:14},{width:13},{width:13},{width:12},{width:8},{width:8},{width:10},{width:16},{width:30}];
+    ws1.views=[{state:'frozen',ySplit:7,showGridLines:false}];
+    /* HOJA 2 — PROYECTOS */
+    const ws2=wb.addWorksheet('Proyectos',{properties:{tabColor:{argb:'FF2D8A58'}}});
+    ws2.views=[{showGridLines:false}];
+    ws2.mergeCells('A1:L1'); ws2.getRow(1).height=32;
+    const h2=ws2.getCell('A1'); h2.value='Proyectos — Cuentas Analíticas'; h2.font=fnt(true,'FFFFFF',12); h2.fill=fill(P.green); h2.alignment=aln('center');
+    addHeaderRow(ws2,['Cta. Analítica','Proyecto','Responsable','Empresa','Estado','F.Inicio','F.Fin Est.','Avance','Centro Coste','Tareas','Costes (FCFA)','Descripción'],P.green);
+    pa.forEach(([pid,p],i)=>{
+      const acc=`AN-${String(i+1).padStart(3,'0')}`; const cc='CC-'+(p.name||'').slice(0,4).toUpperCase().replace(/\s/g,'');
+      const ptsk=Object.values(allTasks[pid]||{}); const v=pct(allTasks[pid]||{});
+      const costSum=Object.values(costs[pid]||{}).reduce((s,c)=>s+(+c.amount||0),0);
+      const row=ws2.addRow([acc,p.name,p.ownerName||'',p.company||'Inverfin',p.status||'',fmtD(p.startDate),fmtD(p.endDate),v/100,cc,ptsk.length,costSum,p.description||'']);
+      row.height=16; const bg=i%2===0?P.even:P.odd;
+      const fmts=[null,null,null,null,null,null,null,PCT,null,null,FCFA,null];
+      const fcs=[P.formula,P.ink,P.muted,P.muted,P.muted,P.muted,P.muted,P.input,P.formula,P.muted,P.input,P.muted];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(idx<=2||idx===12?'left':'center'); if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+    });
+    ws2.columns=[{width:12},{width:28},{width:18},{width:16},{width:14},{width:14},{width:14},{width:14},{width:10},{width:12},{width:12},{width:30}];
+    ws2.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 3 — TAREAS */
+    const ws3=wb.addWorksheet('Tareas',{properties:{tabColor:{argb:'FF10B981'}}});
+    ws3.views=[{showGridLines:false}];
+    ws3.mergeCells('A1:K1'); ws3.getRow(1).height=32;
+    const h3=ws3.getCell('A1'); h3.value='Tareas — Partes de Horas'; h3.font=fnt(true,'FFFFFF',12); h3.fill=fill(P.green2); h3.alignment=aln('center');
+    addHeaderRow(ws3,['ID Tarea','Proyecto','Nombre Tarea','Asignado A','Estado','Fecha Creación','T.Est (h)','T.Real (h)','Eficiencia %','Cta. Analítica','Descripción'],P.green2);
+    let tIdx=1, totEst=0, totReal=0;
+    pa.forEach(([pid,p],pi)=>{
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`;
+      Object.values(allTasks[pid]||{}).forEach(t=>{
+        const est=+(t.timeEstimated||0); const real=(+(t.timeSpent||0))/60; const eff=est>0?Math.round(real/est*1000)/1000:0;
+        totEst+=est; totReal+=real;
+        const row=ws3.addRow([`TSK-${String(tIdx++).padStart(3,'0')}`,p.name,t.name,t.assignedName||'',t.status||'',fmtD(t.createdAt),Math.round(est*10)/10,Math.round(real*10)/10,eff,acc,t.description||'']);
+        row.height=16; const bg=(tIdx-2)%2===0?P.even:P.odd;
+        const fcs=[P.muted,P.muted,P.ink,P.muted,P.muted,P.muted,P.input,P.input,eff>=1?P.green:(eff<0.5&&est>0?'C0392B':P.formula),P.formula,P.muted];
+        row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===3,fcs[idx-1],9); c.alignment=aln(['center','left','left','left','center','center','center','center','center','center','left'][idx-1]); const fmts=[null,null,null,null,null,null,HRS,HRS,PCT1,null,null]; if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+      });
+    });
+    const totEff=totEst>0?Math.round(totReal/totEst*1000)/1000:0;
+    const tRow3=ws3.addRow(['TOTALES','','','','','',Math.round(totEst*10)/10,Math.round(totReal*10)/10,totEff,'','']);
+    tRow3.height=20; ws3.mergeCells(`A${tRow3.number}:F${tRow3.number}`);
+    tRow3.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===7||i===8) c.numFmt=HRS; if(i===9) c.numFmt=PCT1; });
+    ws3.columns=[{width:12},{width:22},{width:26},{width:18},{width:14},{width:14},{width:14},{width:13},{width:12},{width:12},{width:30}];
+    ws3.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 4 — COSTES */
+    const ws4=wb.addWorksheet('Costes',{properties:{tabColor:{argb:'FFD97706'}}});
+    ws4.views=[{showGridLines:false}];
+    ws4.mergeCells('A1:L1'); ws4.getRow(1).height=32;
+    const h4=ws4.getCell('A1'); h4.value='Costes — Facturas y Apuntes Contables'; h4.font=fnt(true,'FFFFFF',12); h4.fill=fill(P.amber); h4.alignment=aln('center');
+    addHeaderRow(ws4,['ID Coste','Proyecto','Concepto','Fecha','Base (FCFA)','Imp.CEMAC (18%)','Total c/Imp (FCFA)','Cta. Contable','Cta. Analítica','Centro Coste','Estado Pago','Notas'],P.amber);
+    let cIdx=1, totBase=0, totImp=0, totTot=0;
+    pa.forEach(([pid,p],pi)=>{
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`; const cc='CC-'+(p.name||'').slice(0,4).toUpperCase().replace(/\s/g,'');
+      Object.values(costs[pid]||{}).forEach(co=>{
+        const base=+(co.amount||0); const imp=Math.round(base*0.18); const tot=base+imp;
+        totBase+=base; totImp+=imp; totTot+=tot;
+        const row=ws4.addRow([`CST-${String(cIdx++).padStart(3,'0')}`,p.name,co.description||'',fmtD(co.date),base,imp,tot,'627000',acc,cc,'Pagado','']);
+        row.height=16; const bg=(cIdx-2)%2===0?P.even:P.odd;
+        const fcs=[P.muted,P.muted,P.ink,P.muted,P.input,P.formula,P.formula,P.formula,P.formula,P.formula,P.muted,P.muted];
+        row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===3,fcs[idx-1],9); c.alignment=aln(['center','left','left','center','center','center','center','center','center','center','center','left'][idx-1]); const fmts=[null,null,null,null,FCFA,FCFA,FCFA,null,null,null,null,null]; if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+      });
+    });
+    const tRow4=ws4.addRow(['TOTALES','','','',Math.round(totBase),Math.round(totImp),Math.round(totTot),'','','','','']);
+    tRow4.height=20; ws4.mergeCells(`A${tRow4.number}:D${tRow4.number}`);
+    tRow4.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if([5,6,7].includes(i)) c.numFmt=FCFA; });
+    ws4.columns=[{width:12},{width:22},{width:26},{width:13},{width:18},{width:15},{width:18},{width:13},{width:13},{width:13},{width:12},{width:20}];
+    ws4.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 5 — REPORTES */
+    const ws5=wb.addWorksheet('Reportes',{properties:{tabColor:{argb:'FF6B4FA8'}}});
+    ws5.views=[{showGridLines:false}];
+    ws5.mergeCells('A1:I1'); ws5.getRow(1).height=32;
+    const h5=ws5.getCell('A1'); h5.value='Reportes Diarios — Partes de Trabajo'; h5.font=fnt(true,'FFFFFF',12); h5.fill=fill(P.purple); h5.alignment=aln('center');
+    addHeaderRow(ws5,['ID Reporte','Empleado','Proyecto','Fecha','Horas','Tareas Realizadas','Problemas Detectados','Notas','Cta. Analítica'],P.purple);
+    const repList=Object.values(reports||{}).sort((a,b)=>new Date(a.date||0)-new Date(b.date||0));
+    let totH=0;
+    repList.forEach((r,i)=>{
+      const pid=r.projectId||''; const pi=pa.findIndex(([p])=>p===pid);
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`; const hrs=+(r.hoursWorked||0); totH+=hrs;
+      const row=ws5.addRow([`RPT-${String(i+1).padStart(3,'0')}`,r.userName||'',r.projectName||'—',fmtD(r.date),hrs,r.tasks||'',r.problems||'',r.notes||'',acc]);
+      row.height=18; const bg=i%2===0?P.even:P.odd;
+      const fcs=[P.muted,P.ink,P.muted,P.muted,P.input,P.muted,!!(r.problems||'').trim()?'C0392B':P.muted,P.muted,P.formula];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(['center','left','left','center','center','left','left','left','center'][idx-1],[6,7,8].includes(idx)); if(idx===5) c.numFmt=HRS; });
+    });
+    const tRow5=ws5.addRow(['TOTAL HORAS','','','',Math.round(totH*10)/10,'','','','']);
+    tRow5.height=20; ws5.mergeCells(`A${tRow5.number}:D${tRow5.number}`);
+    tRow5.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===5) c.numFmt=HRS; });
+    ws5.columns=[{width:12},{width:18},{width:22},{width:13},{width:12},{width:36},{width:28},{width:24},{width:13}];
+    ws5.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* DOWNLOAD */
+    const buffer=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`InverWork_Informe_${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al exportar: '+e.message); console.error(e);
+  } finally {
+    if(btn){ btn.textContent='Exportar Excel'; btn.disabled=false; }
+  }
+};
+
+/* ══════════════════════════════════
    APP
 ══════════════════════════════════ */
 const App=()=>{
@@ -1109,6 +1291,8 @@ const App=()=>{
   const[synced,  setSynced]  =useState(false);
   const[notifs,  setNotifs]  =useState(0);
   const[notifOpen,setNotifOpen]=useState(false);
+  const UPDATE_KEY='iw_update_v1_seen';
+  const[showUpdate,setShowUpdate]=useState(false);
 
   /* Firebase ready */
   useEffect(()=>{
@@ -1174,6 +1358,7 @@ const App=()=>{
   const login=u=>{
     setUser(u);
     setTab(u.role==='admin'||u.role==='gerencia'?'overview':'dashboard');
+    if(!localStorage.getItem(UPDATE_KEY)) setShowUpdate(true);
   };
 
   const logout=()=>{setUser(null);setTab('dashboard');setOpenProj(null);setSynced(false)};
@@ -1206,7 +1391,7 @@ const App=()=>{
             {activeTab==='projects'          &&<Projects  user={user} projects={projects} allTasks={allTasks} openProj={openProj} setOpenProj={setOpenProj}/>}
             {activeTab==='team'     &&isEmp   &&<Team      user={user} projects={projects} allTasks={allTasks}/>}
             {activeTab==='reports'           &&<Reports    user={user} projects={projects} reports={reports}/>}
-            {activeTab==='overview'&&(isAdmin||isGerenc)&&<Overview projects={projects} allTasks={allTasks} reports={reports} users={users}/>}
+            {activeTab==='overview'&&(isAdmin||isGerenc)&&<Overview projects={projects} allTasks={allTasks} reports={reports} users={users} onExport={()=>exportExcel(projects,allTasks,reports,users)}/>}
             {activeTab==='users'   &&isAdmin  &&<Users     users={users}/>}
           </div>
         </div>
@@ -1252,6 +1437,53 @@ const App=()=>{
           </div>
         </div>
       )}
+
+      {/* ── BANNER DE ACTUALIZACIÓN ── */}
+      {showUpdate&&portal(
+        <div style={{position:'fixed',inset:0,zIndex:9500,display:'flex',alignItems:'flex-end',justifyContent:'flex-end',padding:'24px',pointerEvents:'none'}}>
+          <div className="mi" style={{pointerEvents:'all',width:'336px',background:'#0d1117',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',boxShadow:'0 24px 64px rgba(0,0,0,.5)',overflow:'hidden'}}>
+            <div style={{background:'linear-gradient(135deg,#1e3a8a 0%,#4f73f5 100%)',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div>
+                  <div style={{color:'#fff',fontSize:'12.5px',fontWeight:700,letterSpacing:'-.01em',lineHeight:1}}>Nueva actualización</div>
+                  <div style={{color:'rgba(255,255,255,.5)',fontSize:'10px',marginTop:'3px'}}>InverWork · versión 1.1</div>
+                </div>
+              </div>
+              <button onClick={()=>{setShowUpdate(false);localStorage.setItem(UPDATE_KEY,'1')}}
+                style={{width:'24px',height:'24px',borderRadius:'50%',background:'rgba(255,255,255,.12)',border:'none',cursor:'pointer',color:'rgba(255,255,255,.55)',fontSize:'15px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .14s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.22)';e.currentTarget.style.color='#fff'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.12)';e.currentTarget.style.color='rgba(255,255,255,.55)'}}>×</button>
+            </div>
+            <div style={{padding:'16px 18px 18px'}}>
+              <div style={{color:'rgba(255,255,255,.35)',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'1.3px',marginBottom:'14px'}}>Novedades incluidas</div>
+              <div style={{display:'flex',flexDirection:'column',gap:'11px'}}>
+                {[
+                  {color:'#60a5fa',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,title:'Ajustes de diseño',desc:'Mejoras visuales en la interfaz, iconos y espaciado para una experiencia más cuidada.'},
+                  {color:'#34d399',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,title:'Integración hoja Excel',desc:'Exportación de datos en formato Excel disponible para Administrador y Gerencia.'},
+                ].map(({color,icon,title,desc},i)=>(
+                  <div key={i} style={{display:'flex',gap:'12px',alignItems:'flex-start'}}>
+                    <span style={{width:'26px',height:'26px',borderRadius:'7px',background:color+'18',border:`1px solid ${color}30`,color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:'1px'}}>{icon}</span>
+                    <div>
+                      <div style={{color:'rgba(255,255,255,.82)',fontSize:'12px',fontWeight:600,lineHeight:1.2,letterSpacing:'-.01em'}}>{title}</div>
+                      <div style={{color:'rgba(255,255,255,.3)',fontSize:'11px',marginTop:'3px',lineHeight:1.5}}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>{setShowUpdate(false);localStorage.setItem(UPDATE_KEY,'1')}}
+                style={{width:'100%',marginTop:'18px',padding:'9px 0',background:'#4f73f5',border:'none',borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:600,cursor:'pointer',letterSpacing:'-.01em',transition:'background .13s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#3558e0'}
+                onMouseLeave={e=>e.currentTarget.style.background='#4f73f5'}>
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
