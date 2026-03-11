@@ -547,6 +547,7 @@ const ProjectDetail=({user,pid,project,onBack})=>{
   const[tab,setTab]=useState('tasks');
   const[showTask,setShowTask]=useState(false);
   const[showCost,setShowCost]=useState(false);
+  const[editTask,setEditTask]=useState(null); // {tid, ...fields}
   const[tName,setTName]=useState('');
   const[tDesc,setTDesc]=useState('');
   const[tSt,setTSt]=useState('Pendiente');
@@ -584,6 +585,18 @@ const ProjectDetail=({user,pid,project,onBack})=>{
     await window.FB.delTask(pid,tid);
     const updated={...tasks};delete updated[tid];
     await window.FB.updProject(pid,{progress:pct(updated)});
+  };
+
+  const openEditTask=(tid,t)=>{
+    setEditTask({tid,name:t.name,description:t.description||'',status:t.status||'Pendiente',timeEstimated:t.timeEstimated||''});
+  };
+
+  const saveEditTask=async()=>{
+    if(!editTask.name.trim())return;
+    await window.FB.updTask(pid,editTask.tid,{name:editTask.name.trim(),description:editTask.description,status:editTask.status,timeEstimated:editTask.timeEstimated});
+    const updated={...tasks,[editTask.tid]:{...tasks[editTask.tid],...editTask}};
+    await window.FB.updProject(pid,{progress:pct(updated)});
+    setEditTask(null);
   };
 
   const addCost=async()=>{
@@ -721,10 +734,17 @@ const ProjectDetail=({user,pid,project,onBack})=>{
                           </button>
                         );
                       })}
+                      <button onClick={()=>openEditTask(tid,t)}
+                        title="Editar tarea"
+                        style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#9ca3af',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',marginLeft:'4px',transition:'all .15s'}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#a5b4fc';e.currentTarget.style.color='#4f73f5';e.currentTarget.style.background='#eef1fe'}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='transparent'}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
                       <button onClick={()=>removeTask(tid)}
-                        style={{width:'24px',height:'24px',borderRadius:'50%',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontFamily:'inherit',marginLeft:'4px'}}
-                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444'}}
-                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db'}}>×</button>
+                        style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontFamily:'inherit',marginLeft:'2px',transition:'all .15s'}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db';e.currentTarget.style.background='transparent'}}>×</button>
                     </div>
                   )}
                 </div>
@@ -768,6 +788,22 @@ const ProjectDetail=({user,pid,project,onBack})=>{
             </div>
           }
         </>
+      )}
+
+      {/* EDIT TASK MODAL */}
+      {editTask&&(
+        <Modal title="Editar tarea" onClose={()=>setEditTask(null)}>
+          <In label="Nombre *" value={editTask.name} onChange={e=>setEditTask(p=>({...p,name:e.target.value}))} placeholder="Nombre de la tarea" autoFocus/>
+          <Ta label="Descripción" value={editTask.description} onChange={e=>setEditTask(p=>({...p,description:e.target.value}))} placeholder="Descripción opcional"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Tiempo estimado (h)" type="number" value={editTask.timeEstimated} onChange={e=>setEditTask(p=>({...p,timeEstimated:e.target.value}))} placeholder="0"/>
+            <Se label="Estado" value={editTask.status} onChange={e=>setEditTask(p=>({...p,status:e.target.value}))} opts={['Pendiente','En progreso','Completado']}/>
+          </div>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setEditTask(null)}>Cancelar</Btn>
+            <Btn full onClick={saveEditTask} dis={!editTask.name.trim()}>Guardar cambios</Btn>
+          </div>
+        </Modal>
       )}
 
       {/* TASK MODAL */}
@@ -1291,7 +1327,7 @@ const App=()=>{
   const[synced,  setSynced]  =useState(false);
   const[notifs,  setNotifs]  =useState(0);
   const[notifOpen,setNotifOpen]=useState(false);
-  const UPDATE_KEY='iw_update_v1_seen';
+  const UPDATE_KEY='iw_update_v2_seen';
   const[showUpdate,setShowUpdate]=useState(false);
 
   /* Firebase ready */
@@ -1448,8 +1484,8 @@ const App=()=>{
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </div>
                 <div>
-                  <div style={{color:'#fff',fontSize:'12.5px',fontWeight:700,letterSpacing:'-.01em',lineHeight:1}}>Nueva actualización</div>
-                  <div style={{color:'rgba(255,255,255,.5)',fontSize:'10px',marginTop:'3px'}}>InverWork · versión 1.1</div>
+                  <div style={{color:'#fff',fontSize:'12.5px',fontWeight:700,letterSpacing:'-.01em',lineHeight:1}}>Nueva funcionalidad</div>
+                  <div style={{color:'rgba(255,255,255,.5)',fontSize:'10px',marginTop:'3px'}}>InverWork · versión 1.2</div>
                 </div>
               </div>
               <button onClick={()=>{setShowUpdate(false);localStorage.setItem(UPDATE_KEY,'1')}}
@@ -1461,8 +1497,7 @@ const App=()=>{
               <div style={{color:'rgba(255,255,255,.35)',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'1.3px',marginBottom:'14px'}}>Novedades incluidas</div>
               <div style={{display:'flex',flexDirection:'column',gap:'11px'}}>
                 {[
-                  {color:'#60a5fa',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,title:'Ajustes de diseño',desc:'Mejoras visuales en la interfaz, iconos y espaciado para una experiencia más cuidada.'},
-                  {color:'#34d399',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,title:'Integración hoja Excel',desc:'Exportación de datos en formato Excel disponible para Administrador y Gerencia.'},
+                  {color:'#60a5fa',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,title:'Editar tareas',desc:'Ahora puedes editar el nombre, descripción, tiempo estimado y estado de cualquier tarea desde el detalle del proyecto.'},
                 ].map(({color,icon,title,desc},i)=>(
                   <div key={i} style={{display:'flex',gap:'12px',alignItems:'flex-start'}}>
                     <span style={{width:'26px',height:'26px',borderRadius:'7px',background:color+'18',border:`1px solid ${color}30`,color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:'1px'}}>{icon}</span>
