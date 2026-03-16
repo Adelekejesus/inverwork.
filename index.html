@@ -3,376 +3,2097 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>InverWork · Mantenimiento</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<title>InverWork · Inverfin Holding</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#0f1520;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif;color:#f0f6ff}
-canvas{position:fixed;inset:0;z-index:0}
-.score-bar{position:fixed;top:0;left:0;right:0;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;z-index:3}
-.score-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#f0f6ff;letter-spacing:-.03em}
-.score-label{font-size:10px;color:rgba(240,246,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:rgba(240,246,255,.7);letter-spacing:-.02em}
-.ui{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:52px;pointer-events:none}
-.card{background:rgba(15,21,32,.88);border:1px solid rgba(79,115,245,.2);border-radius:20px;padding:26px 34px;text-align:center;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);max-width:380px;width:90%;pointer-events:all}
-.badge{display:inline-flex;align-items:center;gap:7px;background:rgba(90,158,58,.15);border:1px solid rgba(90,158,58,.3);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:#7cc44f;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px}
-.badge-dot{width:6px;height:6px;border-radius:50%;background:#7cc44f;animation:blink 1.2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.title{font-family:'Syne',sans-serif;font-size:clamp(20px,4vw,30px);font-weight:800;letter-spacing:-.04em;line-height:1.15;color:#f0f6ff;margin-bottom:8px}
-.sub{font-size:12.5px;color:rgba(240,246,255,.38);line-height:1.65;margin-bottom:18px}
-.hint{font-size:11px;color:rgba(240,246,255,.22);letter-spacing:1px;text-transform:uppercase;cursor:pointer;pointer-events:all;transition:color .2s}
-.hint:hover{color:rgba(240,246,255,.5)}
-.progress-track{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:12px}
-.progress-fill{height:100%;background:linear-gradient(90deg,#5a9e3a,#4f73f5);border-radius:99px;animation:progLoop 2.8s cubic-bezier(.4,0,.6,1) infinite}
-@keyframes progLoop{0%{width:0;opacity:1}65%{width:88%;opacity:1}85%{width:95%;opacity:.6}100%{width:0;opacity:0}}
-.footer{position:fixed;bottom:14px;left:0;right:0;text-align:center;font-size:10px;color:rgba(240,246,255,.13);letter-spacing:.5px;z-index:3}
+html,body,#root{height:100%;font-family:'Inter',system-ui,sans-serif;background:#f0f2f5;color:#1a1d23;-webkit-font-smoothing:antialiased}
+.g{font-family:'EB Garamond',Georgia,serif}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:#d0d0cc;border-radius:99px}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes mi{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fi{animation:fi .22s ease both}
+.mi{animation:mi .18s ease both}
+.spin{animation:sp .7s linear infinite}
 </style>
+<!-- Firebase -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getDatabase,ref,set,get,push,onValue,remove,update}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+const app=initializeApp({apiKey:'AIzaSyCVBfb-baz0rIN8s-rPhqSazMCF8u8JcM8',authDomain:'inverwork-inverfin.firebaseapp.com',databaseURL:'https://inverwork-inverfin-default-rtdb.firebaseio.com',projectId:'inverwork-inverfin',storageBucket:'inverwork-inverfin.firebasestorage.app',messagingSenderId:'459905480268',appId:'1:459905480268:web:d65e2a6b8821238ff226e9'});
+const db=getDatabase(app);
+window.FB={
+  setUser:(id,d)=>set(ref(db,'users/'+id),d),
+  getUsers:()=>get(ref(db,'users')).then(s=>s.val()||{}),
+  onUsers:fn=>onValue(ref(db,'users'),s=>fn(s.val()||{})),
+  addProject:d=>push(ref(db,'projects'),d),
+  updProject:(id,d)=>update(ref(db,'projects/'+id),d),
+  delProject:id=>remove(ref(db,'projects/'+id)),
+  onProjects:fn=>onValue(ref(db,'projects'),s=>fn(s.val()||{})),
+  addTask:(pid,d)=>push(ref(db,'tasks/'+pid),d),
+  updTask:(pid,tid,d)=>update(ref(db,'tasks/'+pid+'/'+tid),d),
+  delTask:(pid,tid)=>remove(ref(db,'tasks/'+pid+'/'+tid)),
+  onTasks:(pid,fn)=>onValue(ref(db,'tasks/'+pid),s=>fn(s.val()||{})),
+  onAllTasks:fn=>onValue(ref(db,'tasks'),s=>fn(s.val()||{})),
+  addLog:(tid,d)=>push(ref(db,'logs/'+tid),d),
+  addCost:(pid,d)=>push(ref(db,'costs/'+pid),d),
+  delCost:(pid,cid)=>remove(ref(db,'costs/'+pid+'/'+cid)),
+  onCosts:(pid,fn)=>onValue(ref(db,'costs/'+pid),s=>fn(s.val()||{})),
+  addReport:d=>push(ref(db,'reports'),d),
+  onReports:fn=>onValue(ref(db,'reports'),s=>fn(s.val()||{})),
+  addComment:(rid,d)=>push(ref(db,'comments/'+rid),d),
+  onComments:(rid,fn)=>onValue(ref(db,'comments/'+rid),s=>fn(s.val()||{})),
+  /* ── Colaboradores e invitaciones ── */
+  addCollab:(pid,d)=>push(ref(db,'collabs/'+pid),d),
+  updCollab:(pid,cid,d)=>update(ref(db,'collabs/'+pid+'/'+cid),d),
+  delCollab:(pid,cid)=>remove(ref(db,'collabs/'+pid+'/'+cid)),
+  onCollabs:(pid,fn)=>onValue(ref(db,'collabs/'+pid),s=>fn(s.val()||{})),
+  onAllCollabs:fn=>onValue(ref(db,'collabs'),s=>fn(s.val()||{})),
+  addInvite:d=>push(ref(db,'invites'),d),
+  updInvite:(id,d)=>update(ref(db,'invites/'+id),d),
+  onInvites:(userId,fn)=>onValue(ref(db,'invites'),s=>{
+    const all=s.val()||{};
+    fn(Object.fromEntries(Object.entries(all).filter(([,v])=>v.toUserId===userId)));
+  }),
+};
+window.dispatchEvent(new Event('fb'));
+</script>
 </head>
 <body>
-<canvas id="c"></canvas>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const LOGO='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCADkAOQDASIAAhEBAxEB/8QAHQABAAMBAQADAQAAAAAAAAAAAAYHCAUJAQIDBP/EAEoQAAEDAgICCg0KBAcBAAAAAAABAgMEBQYRBxIIITE1QVFUkbLRExUWIjdhcXJ1gYKjsxQYMjZCUlaTocFzdLHDIyRTYpKi4TP/xAAcAQEBAQADAQEBAAAAAAAAAAAABQQCAwYBBwj/xAAwEQACAgADBQcEAgMBAAAAAAAAAQIDBAURFSEzUXESMTJBgdHwExRSsQZhI5GhIv/aAAwDAQACEQMRAD8AxkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD7RRvlkbHGxz3uXJGomaqSK3YWke1H10vY0X7DNtfWu5/U7a6Z2vSKOq26FS1kyNgnkNgtUaJ/ltdeNz1X9z9e01r5FFzGpZfZzRkeZV8mV8Cwe01r5FFzDtNa+RRcx92fPmj5tKvkyvgWD2mtfIouYdprXyKLmGz580NpV8mV8Cwe01r5FFzDtNa+RRcw2fPmhtKvkyvgWD2mtfIouYdprXyKLmGz580NpV8mV8Cwe01r5FFzDtNa+RRcw2fPmhtKvkyvgWD2mtfIouYdprXyKLmGz580NpV8mV8Cwe01r5FFzHw6y2tUyWij9WaDZ8+aG0q+TK/BNKrDFvlavYVkgdwZO1k5l6yO3WzVlv797Ukh/1GbieXiM9uFsrWrW40VYuq16J7zmgAzmkAAAAAAAAAH2jY+SRsbGq5zlyRE4VPqSLBVGktVJWPTNIu9Z5y/+f1Oymt2TUUdV1iqg5M7dhtMVugRzkR1S5O/fxeJPEdMA9BCChHsxPOznKcu1LvAAORwAAAAAAAAAAAAAAAAAAAAAB8Oa17Va5qOaqZKipminyAfSFYns6UMnyinRfk713PuLxeQ4hZVbTx1VLJTyp3r25eTxlcTxOhnfC9MnMcrV8qEbGUKuWse5lvA3u2PZl3o+gAMRuAAAAAABOcIRoyxxuRP/AKPc5efL9iDE8wpvBTe301N2Xr/K+hgzF/4l1OoACwRAAAAAAAAAAAAAAAAAAAAAAAAAAAAQPFTEZfajLcdqu52oTwg2Lt/ZvNb0UMOYcJdShl3FfQ5AAI5aAAAAAABPMKbwU3t9NSBk8wpvBTe301N2X8R9PYn5jwl19zqAAsEUAAAAFxaF8Cwup4cTXeFHucutRQvTaRP9RU4V4ufiyl5zm9GU4V4i7ol5t8kdtNUrZdlEawbovvl8ZHV1ypbKJ22jpW5yPTjazg8q5estCx6MsJWxrVfQur5U+3VP1v8AqmTf0JmD8SzT+Y5pmEnpPsR5R3f7fe/1/RZqwldflqyqtPlPRUGFLfSUdLT0zH1uvqRRIxO9Y5OBP9xSha+yLr0kulqtrVTOGF8zvbVEToLzlUH6x/C65wyeqU++Wr/23p/zQl4xp3PQAA9SZQAAAAAAAAAAAAQbF2/s3mt6KE5INi7f2bzW9FDFmHCXU35dxX0OQACMWwAAAAAATzCm8FN7fTUgZPMKbwU3t9NTdl/EfT2J+Y8Jdfc6gALBFAAAP78PUC3W+0FtRcvlNQyJV4kVyIq+pDS15u0NoWis9up2T3CoTUpKVq5NYxqbb3r9ljUT15ZIZ60dVNPR42tdVVORsMUqve5VyyRGrtl0aK2S3ZtfjKuTOpucro4EXb7FTsdkjE9aLnx5Ip+bfzytOULrt9da3L8pyeiXRKOr/paLTXUo4F7ml3v9ExoIZoKdG1FQ6omXbkkVNVFXxN+ynEnOqrmq/rK9kUbpJHtYxiK5znLkiIm6qny5Ua1XOVEREzVV4Cm9L+kGCrppcP2KfskT+9qqli965PuNXhTjX1cZ+cZPlGJzrFqutbtf/T03RX66IoW2xpjqyAY7vXdBiuuujVXsUkmrCi8EbUyb+iZ+VVOGfpTQTVM7KemhkmmkXVZHG1XOcvEiJtqW1gXY8aRcSpHUVlDHYKN232W4KrZFTxRJm7Pzkb5T+iKoVYSmNUd0YpJdFuIcYWXSbS1KhBq3E2xiw3ZtHN3rmX25VV6oqSWqZOrGshesbFdqdjTNUR2WWesqouS+JcpHOq6FurifbqJ06drzALa0X6Asb42p4rjLHHY7TJkramtauvI1eGONNtyZLmirqovApeNi2K2BqWBvba73q5Tp9JWPZBGvkajVVP8AkpwsxdUHo2dleDtsWqWhjQG1rhsXdHFRArKaovlHJkuq9lU123wZo5i5pzFH6Ytj9iTA1HLebZUdvbNEmtLLHFqTU7eN7M1zan3kVeNUQ+V4uqb0TPtmCtrWumpTIANJkAAABBsXb+zea3ooTkg2Lt/ZvNb0UMWYcJdTfl3FfQ5AAIxbAAAAAABPMKbwU3t9NSBk8wpvBTe301N2X8R9PYn5jwl19zqAAsEUAmmg+hwvcdKNno8ZvpGWJ6zLVOqqnsESZQyKzWfrNy79G8O2uSbeeRs7CmH9CsD44cPUOC6iVyo2NY3QVEqqu4iOVXOXPyma/Eqp6aamvD4V3LXXQwNR0NdVtkdSUdTUJG1XPWKJztVqJmqrkm0iIT+wXjSVasARXW22qXudp1dG2t+Sa7GrrLnm7zlVM12s9o3ffbTBdMN3CxovyaGspJaVXRtTvEexWqqJubWZTGJMAO0b7GbF+H23l11hcx1RHI+n7EsessaK3LWXNM25+tSfiJYbHRVeIrUlqtzWvr1NawUqt6k+5mTL/i7El8Ysdyu08sK7sTcmRr5WtyRfWWdsYNE9h0kS3asv9XWsp7Y+FqU9M5GdlV+svfOVFVE73cTJdvdQpQk+Bcf4vwO6oXC16kt3ylWrM1Io5GvVueWaPaqbWsvOb44WFNP08PFQX9LRf8MFVkfqdqzejf8Ag3A+EsHwdiw3YKK3rlqulZHnK9P90js3O9akiMmaC9OukHEekqy4cvdXQ1lHWyuZK5aRrJERGOdtKzJN1E4DWZJvqnXLSb3l2i2FkdYdx/LeaRK+0VtAuWVTTyQ7a5J3zVTg8pn7Y6aAqWz01PinHNEye6vRH0tumaispU3UdInDJ4l2m+X6OizLWnTZIVUVZVYcwAnYOwvdDUXSVmblci5KkLV3Mvvr6kTaVeeH+rJOEPM4Yh1Q0nZ5dxpe8Xm0WaFJrvdaG3RLuPqqhkTV9blQ/msmKMM3yVYbLiK0XOREzVlHWxzKiceTVU82btcrjd66SvutfVV1XIub56iV0j3eVzlVT8qKqqaKriq6Oolp6iF6PilierXscm4qKm2imvZy08W8x7S3+HceoR8PY2RjmPa1zHJk5qpmipxKQPQDjKfHOi62Xqtc11wZrU1YqJlrSxrlreVzdV3lcT0myi4ycX5FOMlKKkvMwFskcCxYD0mVVFQRdjtVcxKyham4xjlVHR+y5HIni1StDW2zutTZMM4bvaMTWp6yWlV2W6kjNdEX8pf1Mkl3C2OdSbIGLrVdrSAAO8zAg2Lt/ZvNb0UJyQbF2/s3mt6KGLMOEupvy7ivocgAEYtgAAAAAAnmFN4Kb2+mpAyeYU3gpvb6am7L+I+nsT8x4S6+51AAWCKCW6GZexaXcIOyzzvdI3nman7kSJTog8LOD/TtF8dhxs8LOdfjR6PlbbJ5VTQTidUVU/wYk9/GWSVrsn/ARif+DD8eM8/TxI9Uejt4cujMAgA9EeZJ3sffDThT0iz9z0NPPLY++GnCnpFn7noaScw8a6FrLeG+oPMnFP1nuv8AOzdNT02PMnFP1nuv87N01OWXd8jhmXhic0AFQkGx9gxUPfo1vNM76MV4c9q+dDFmn/X9VNAmeNgr9QL76V/tMNDkHFcaR6LC8GJRezcY12iCkVyIqtvMKt8S9jlT+iqYrNq7NrwPU3peD4cpiopYDhEvMOL6AAGwwgg2Lt/ZvNb0UJyQbF2/s3mt6KGLMOEupvy7ivocgAEYtgAAAAAAnmFN4Kb2+mpAyeYU3gpvb6am7L+I+nsT8x4S6+51AAWCKCU6IPCzg/07RfHYRYlOiDws4P8ATtF8dhxn4Wc6/Ej0fK12T/gIxP8AwYfjxllFa7J/wEYn/gw/HjPP08SPVHo7eHLozAIAPRHmSd7H3w04U9Is/c9DTzy2Pvhpwp6RZ+56GknMPGuhay3hvqDzJxT9Z7r/ADs3TU9NjzOxpC6nxjeqdyororhOxVTcVUkchyy7vkcMy8MTkAAqEg2DsFfqBffSv9phoczxsFfqBffSv9phocg4rjSPRYTgxKM2bXgepvS8Hw5TFRtXZteB6m9LwfDlMVFLAcL1JmYcX0AANhgBBsXb+zea3ooTkg2Lt/ZvNb0UMWYcJdTfl3FfQ5AAIxbAAAAAABPMKbwU3t9NSBk8wpvBTe301N2X8R9PYn5jwl19zqAAsEUEp0QeFnB/p2i+Ow4Fnt9Zd7tR2q3w9mrK2dlPTx6yN15HuRrW5qqImaqiZqqIaB0V7HTH9uxjY8QXh9pt8FtuNPVyQuqVkle2ORr1Ruoitz73LbcdV1kIRakzvoqnOScUa9K12T/gIxP/AAYfjxllET0wYYrMZ6N7xhm3z08FVXRsbHJOqoxFbI1+3kir9niUhVNKab5noLE3BpcjzjBY+kXQrjvAtqmu94pKOW2wvax9VTVTXNRXLkneuyftqv3TmaI9HV30lYgqLPaKyhpJKanWplkqnORNRHNbkmq1c1zcnFw7Zf8Aqwce1ruPO/RmpdjTefvsffDThT0iz9z0NM+aLdjVFhPFNsxJccVPrKqgmSZtPT0iRsVyZ5IrlcqqnqQ0GSMZbGyacWWcFVOqDUuYPNTSH9f8Relar4rj0rMy482LdRdb1cbxZcWxNkrKmSo+T1dIqNar3K7LXa5drb+6fcFbCuT7TOOOpnbFdhGUQdbGNgrMLYouOHq+WCWqoJlhlfA5VY5U4WqqIuXlRC2NFex1veN8MUGJJMRW63W+uRzo0bE+aZEa5Wrm3vUzzav2lKs7YQj2pPcSIUznJxit5bewYhY3Rfd6hM9d96kYvFk2CFU6Sl/kI0L6O6XRnhSew0tzmuKT1jqt80kaM75zGMyREVdrJicPCTchXzU7HJF+iDhWovvKM2bXgepvS8Hw5TFR6MaX8CwaRMGyYcqLjJb2unZMkzI0eqK3PJMlVM02+MyrpU2Ot7wRhivxJHiK3XG30KNdIjonwzKjnI1Mm98mebk+0hQwV0Iw7De/Un46iyU+3FbtCkQAUSWCDYu39m81vRQnJBsXb+zea3ooYsw4S6m/LuK+hyAARi2AAAAAACeYU3gpvb6akDJ5hRUWw06Jwa2f/JTdl/EfT2J+Y8Jdfc6gALBFOlha7S2DE1qvsETJpbdWw1bI3qqNe6N6PRFy4FyL7+dlib8K2j82TrM5A67KYWPWS1O6u+ypaQeho352WJvwraPzZOsfOyxN+FbR+bJ1mcgdf2lP4nZ97f8Al+i5dKWn+94+wbU4ZrbDbqOGeSN6ywyPVyajkcm7tcBE9Dekev0Z3+ru9vt1NXSVVKtM5k7nIjU12uzTLh70gwOxUwUewluOt32Oam3vRo352WJvwraPzZOsfOyxN+FbR+bJ1mcgdf2lP4nZ97f+X6NG/OyxN+FbR+bJ1j52WJvwraPzZOszkB9pT+I+9v8Ay/R2ccYgnxVi254iqaeOnmuE6zPijVVa1V4Ez2y1NHeyKvuC8GW7DFJh621UFCxzWSyyPRztZ7nbeW19opIHZKqE4qLW46oXThJyi97NG/OyxN+FbR+bJ1j52WJvwraPzZOszkDr+0p/E7fvb/y/Ro352WJvwraPzZOsj+kTZFX3GmDLjhirw9baWCuY1r5YpHq5uq9rtrPa+yUkD6sLUnqkfHi7mtHIAA7zMCDYu39m81vRQnJBcXb+zea3ooYsw4S6m/LuK+hyQARi2AAAAAACX4IqEfRS0yr30b9ZPIv/AKn6kQP7bNXOt9eyoTNW/ReicLV3Tvw1v07FJ9xnxVX1a3Fd5YYPpDLHNE2WJyPY9M2qnCfcv9555rQAAHwAAAAAAAAAAAAAAAAAAAAAAAAFdXioSqudROi5tc9dVfEm0n6ISvFdzbSUa00Tv8eZMtr7LeFSEkrH2ptQXkV8upaTm/MAAnFMAAAAAAAAA6tivM1ud2NyLLTqu2zPbTxoTKgr6SuZrU0zXLwt3HJ5UK4PljnMcjmOVrk3FRclQ10YydS0e9GO/BQtfaW5lngr+G83SJERlbIuX3snf1P07oLvyv3bOo2LMK/NMxPLbPJongIH3QXflfu2dQ7oLvyv3bOo+7Qr5P56nzZ1vNfPQngIH3QXflfu2dQ7oLvyv3bOobQr5P56jZ1vNfPQngIH3QXflfu2dQ7oLvyv3bOobQr5P56jZ1vNfPQngIH3QXflfu2dQ7oLvyv3bOobQr5P56jZ1vNfPQngIH3QXflfu2dQ7oLvyv3bOobQr5P56jZ1vNfPQngIH3QXflfu2dQ7oLvyv3bOobQr5P56jZ1vNfPQngIH3QXflfu2dQW/3dUyWrX1RtT9htCvk/nqNnW8189CeKqIiqq5Im6pw7xiKmpWrHSK2ebjT6LfXw+oidVW1lTtVFTLInErtrmP5zotx7a0gtDRVlyi9ZvU/SomlqJnTTPV8jlzVVPzAJzepSS03IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//2Q==';
+const {useState,useEffect,useRef}=React;
+const portal=(el)=>ReactDOM.createPortal(el,document.body);
 
-<div class="score-bar">
-  <div><div class="score-val" id="score">0</div><div class="score-label">Actualizando</div></div>
-  <div class="brand">
-    <svg width="30" height="30" viewBox="0 0 64 64"><rect width="64" height="64" fill="#1e2433" rx="12"/><text x="9" y="46" font-family="serif" font-weight="700" font-size="34" fill="white">in</text><path d="M20 15 C20 9 27 5 32 9 C37 5 44 9 44 15 C44 22 37 27 32 30 C27 27 20 22 20 15Z" fill="#5a9e3a"/></svg>
-    <div class="brand-name">InverWork</div>
+/* ─ helpers ─ */
+const uid  = ()=>Math.random().toString(36).slice(2,9);
+const ts   = ()=>new Date().toISOString();
+const dFmt = d=>d?new Date(d).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'—';
+const tFmt = d=>d?new Date(d).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';
+const pct  = obj=>{const a=Object.values(obj||{});return a.length?Math.round(a.filter(t=>t.status==='Completado').length/a.length*100):0};
+const ADMIN={id:'_admin',name:'Administrador',role:'admin',company:'Inverfin'};
+const GC   ='inverfin2025';
+
+/* ─ design tokens — TrackingTime palette ─ */
+const T={
+  /* sidebar */
+  sb  :'#1e2433', sbHov:'#2a3147', sbAct:'#3d4d7a', sbTxt:'#8b95b0', sbTxtA:'#ffffff',
+  /* main bg */
+  bg  :'#f0f2f5', bgW :'#ffffff', bgS :'#f7f8fa', border:'#e8eaed',
+  /* text */
+  ink :'#1a1d23', inkL:'#3d4452', inkM:'#6b7280', inkF:'#9ca3af',
+  /* accent */
+  blue:'#4f73f5', blueL:'#eef1fe', bluD:'#3558e0',
+  grn :'#22c55e', grnL:'#dcfce7', grnD:'#16a34a',
+  /* project colors (like TrackingTime) */
+  c1:'#4f73f5', c2:'#f59e0b', c3:'#10b981', c4:'#ef4444',
+  c5:'#8b5cf6', c6:'#06b6d4', c7:'#f97316', c8:'#ec4899',
+};
+
+const PROJECT_COLORS=['#4f73f5','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6'];
+const getColor=(str)=>{let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+((h<<5)-h);return PROJECT_COLORS[Math.abs(h)%PROJECT_COLORS.length]};
+
+/* ─ STATUS — TrackingTime style ─ */
+const STAT={
+  'Pendiente'  :{dot:'#9ca3af', color:'#6b7280', bg:'#f3f4f6', border:'#e5e7eb'},
+  'En progreso':{dot:'#4f73f5', color:'#3558e0', bg:'#eef1fe', border:'#c7d2fd'},
+  'Completado' :{dot:'#22c55e', color:'#16a34a', bg:'#dcfce7', border:'#bbf7d0'},
+  'Activo'     :{dot:'#4f73f5', color:'#3558e0', bg:'#eef1fe', border:'#c7d2fd'},
+  'Pausado'    :{dot:'#f59e0b', color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
+  'Finalizado' :{dot:'#22c55e', color:'#16a34a', bg:'#dcfce7', border:'#bbf7d0'},
+  'Bloqueado'  :{dot:'#ef4444', color:'#dc2626', bg:'#fef2f2', border:'#fecaca'},
+};
+
+/* ─ ATOMS ─ */
+const Tag=({s})=>{
+  const c=STAT[s]||STAT['Pendiente'];
+  return <span style={{display:'inline-flex',alignItems:'center',gap:'5px',padding:'2px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:500,border:`1px solid ${c.border}`,background:c.bg,color:c.color}}>
+    <span style={{width:'5px',height:'5px',borderRadius:'50%',background:c.dot,flexShrink:0}}/>
+    {s}
+  </span>;
+};
+
+const Bar=({v})=><div style={{height:'2px',background:'#e4e4e0',borderRadius:'99px',overflow:'hidden'}}>
+  <div style={{height:'100%',width:Math.min(v,100)+'%',background:v===100?T.grn:T.ink,borderRadius:'99px',transition:'width .5s'}}/>
+</div>;
+
+/* ─ FORM COMPONENTS ─ */
+const iSt={width:'100%',padding:'9px 12px',border:'1px solid #e8eaed',borderRadius:'6px',fontSize:'13px',color:'#1a1d23',background:'#fff',outline:'none',fontFamily:'inherit',transition:'all .15s',boxShadow:'0 1px 2px rgba(0,0,0,.04)'};
+const iHov=e=>{e.target.style.borderColor='#4f73f5';e.target.style.boxShadow='0 0 0 3px rgba(79,115,245,.12)'};
+const iBlr=e=>{e.target.style.borderColor='#e8eaed';e.target.style.boxShadow='0 1px 2px rgba(0,0,0,.04)'};
+
+const Field=({label,children})=><div style={{marginBottom:'16px'}}>
+  {label&&<div style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>{label}</div>}
+  {children}
+</div>;
+
+const In=({label,...p})=><Field label={label}>
+  <input style={iSt} onFocus={iHov} onBlur={iBlr} {...p}/>
+</Field>;
+
+const Ta=({label,...p})=><Field label={label}>
+  <textarea style={{...iSt,resize:'none'}} rows={3} onFocus={iHov} onBlur={iBlr} {...p}/>
+</Field>;
+
+const Se=({label,opts,...p})=><Field label={label}>
+  <select style={{...iSt,cursor:'pointer',appearance:'none'}} onFocus={iHov} onBlur={iBlr} {...p}>
+    {opts.map(o=><option key={o}>{o}</option>)}
+  </select>
+</Field>;
+
+const Btn=({ch,v='p',sm,full,dis,...p})=>{
+  const base={display:'inline-flex',alignItems:'center',justifyContent:'center',gap:'6px',fontFamily:'inherit',fontWeight:600,borderRadius:'6px',cursor:dis?'not-allowed':'pointer',opacity:dis?.45:1,transition:'all .15s',border:'none',fontSize:sm?'12px':'13px',padding:sm?'5px 12px':'9px 16px',width:full?'100%':'auto',letterSpacing:'.01em'};
+  const vs={
+    p:{...base,background:'#4f73f5',color:'#fff',boxShadow:'0 1px 3px rgba(79,115,245,.35)'},
+    g:{...base,background:'#fff',color:'#6b7280',border:'1px solid #e8eaed',boxShadow:'0 1px 2px rgba(0,0,0,.04)'},
+    a:{...base,background:'#22c55e',color:'#fff',boxShadow:'0 1px 3px rgba(34,197,94,.35)'},
+    r:{...base,background:'#fff',color:'#9ca3af',border:'1px solid #e8eaed'},
+  };
+  const s=vs[v]||vs.p;
+  const hover={p:'#3558e0',g:'#1a1d23',a:'#16a34a',r:'#ef4444'};
+  return <button style={s} disabled={dis}
+    onMouseEnter={e=>{if(!dis){e.currentTarget.style.background=hover[v];if(v==='g'){e.currentTarget.style.color='#1a1d23';e.currentTarget.style.borderColor='#d1d5db';}if(v==='r'){e.currentTarget.style.color='#ef4444';e.currentTarget.style.borderColor='#fca5a5';}}}}
+    onMouseLeave={e=>{if(!dis){e.currentTarget.style.background=s.background;if(v==='g'){e.currentTarget.style.color='#6b7280';e.currentTarget.style.borderColor='#e8eaed';}if(v==='r'){e.currentTarget.style.color='#9ca3af';e.currentTarget.style.borderColor='#e8eaed';}}}}
+    {...p}>{p.children||ch}</button>;
+};
+
+/* ─ MODAL via portal ─ */
+const Modal=({title,sub,onClose,wide,children})=>{
+  useEffect(()=>{
+    const h=e=>{if(e.key==='Escape')onClose()};
+    document.addEventListener('keydown',h);
+    document.body.style.overflow='hidden';
+    return()=>{document.removeEventListener('keydown',h);document.body.style.overflow='';};
+  },[]);
+  return portal(
+    <div onClick={e=>{if(e.target===e.currentTarget)onClose()}}
+      style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(0,0,0,.28)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div className="mi" onClick={e=>e.stopPropagation()}
+        style={{background:'#fff',border:'1px solid #e4e4e0',borderRadius:'12px',boxShadow:'0 20px 60px rgba(0,0,0,.15)',width:'100%',maxWidth:wide?'680px':'440px',maxHeight:'90vh',display:'flex',flexDirection:'column'}}>
+        <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexShrink:0}}>
+          <div>
+            <div className="g" style={{fontSize:'20px',fontWeight:500,color:'#111'}}>{title}</div>
+            {sub&&<div style={{fontSize:'12px',color:'#888',marginTop:'2px'}}>{sub}</div>}
+          </div>
+          <button onClick={onClose} style={{width:'28px',height:'28px',borderRadius:'50%',border:'1px solid #e4e4e0',background:'#f4f4f2',cursor:'pointer',fontSize:'16px',color:'#888',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginLeft:'12px',fontFamily:'inherit'}}>×</button>
+        </div>
+        <div style={{padding:'20px 24px',overflowY:'auto',flex:1}}>{children}</div>
+      </div>
+    </div>
+  );
+};
+
+/* ─ SPLASH ─ */
+const Splash=()=>portal(
+  <div style={{position:'fixed',inset:0,zIndex:9999,background:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+    <img src={LOGO} style={{width:'48px',height:'48px',borderRadius:'12px',marginBottom:'20px'}} alt=""/>
+    <div className="g" style={{fontSize:'28px',fontWeight:500,color:'#111',marginBottom:'4px'}}>InverWork</div>
+    <div style={{fontSize:'11px',color:'#bbb',letterSpacing:'3px',textTransform:'uppercase',marginBottom:'32px'}}>Inverfin Holding</div>
+    <div className="spin" style={{width:'20px',height:'20px',borderRadius:'50%',border:'2px solid #e4e4e0',borderTopColor:'#111'}}/>
   </div>
-</div>
+);
 
-<div class="ui">
-  <div class="card">
-    <div class="badge"><div class="badge-dot"></div>Mantenimiento</div>
-    <div class="title">Estamos en obras,<br/>volvemos pronto</div>
-    <div class="sub">Invy está instalando la v1.3 con todo el equipo.<br/>Mientras tanto... ¿hasta dónde llegas?</div>
-    <div class="progress-track"><div class="progress-fill"></div></div>
-    <div class="hint" id="jumpHint" onclick="jump()">espacio / tap — saltar</div>
+/* ─ AUTH ─ */
+const DEPT_CODES={'it':'IT2026','consultoria':'CONS2026'};
+
+const Auth=({onLogin})=>{
+  const[mode,setMode]=useState('in');
+  const[name,setName]=useState('');
+  const[pin,setPin]=useState('');
+  const[role,setRole]=useState('empleado');
+  const[dept,setDept]=useState('it');
+  const[code,setCode]=useState('');
+  const[deptCode,setDeptCode]=useState('');
+  const[err,setErr]=useState('');
+  const[busy,setBusy]=useState(false);
+
+  const login=async()=>{
+    if(!name.trim()||!pin){setErr('Completa nombre y PIN');return}
+    setBusy(true);setErr('');
+    if(name.trim().toLowerCase()==='admin'&&pin==='0000'){onLogin(ADMIN);return}
+    const users=await window.FB.getUsers();
+    const u=Object.values(users).find(x=>x.name.toLowerCase()===name.trim().toLowerCase()&&x.pin===pin);
+    if(!u){setErr('Nombre o PIN incorrecto');setBusy(false);return}
+    onLogin(u);
+  };
+
+  const register=async()=>{
+    if(!name.trim()||pin.length!==4){setErr('Nombre y PIN de 4 dígitos');return}
+    if(role==='gerencia'&&code!==GC){setErr('Código de gerencia incorrecto');return}
+    if(!DEPT_CODES[dept]||deptCode!==DEPT_CODES[dept]){setErr('Código de departamento incorrecto');return}
+    setBusy(true);setErr('');
+    const users=await window.FB.getUsers();
+    if(Object.values(users).find(x=>x.name.toLowerCase()===name.trim().toLowerCase())){setErr('Ese nombre ya existe');setBusy(false);return}
+    const id=uid();
+    const nu={id,name:name.trim(),pin,role,department:dept,company:'Inverfin',createdAt:ts()};
+    await window.FB.setUser(id,nu);
+    onLogin(nu);
+  };
+
+  return(
+    <div style={{minHeight:'100vh',display:'flex'}}>
+      {/* panel oscuro */}
+      <div style={{width:'340px',background:'#111',flexShrink:0,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'48px',display:'none'}}>
+        <div className="hidden lg:flex flex-col"/>
+      </div>
+      <div className="hidden lg:flex" style={{width:'340px',background:'#111',flexShrink:0,flexDirection:'column',justifyContent:'space-between',padding:'48px'}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'48px'}}>
+            <img src={LOGO} style={{width:'32px',height:'32px',borderRadius:'8px',opacity:.9}} alt=""/>
+            <span className="g" style={{color:'#fff',fontSize:'22px',fontWeight:500}}>InverWork</span>
+          </div>
+          <div className="g" style={{color:'#fff',fontSize:'28px',fontWeight:500,lineHeight:1.3,marginBottom:'12px'}}>Gestión de proyectos para Inverfin Holding</div>
+          <div style={{color:'rgba(255,255,255,.35)',fontSize:'13px',lineHeight:1.6}}>Proyectos, tareas, tiempo y reportes — todo en tiempo real.</div>
+        </div>
+        <div style={{color:'rgba(255,255,255,.2)',fontSize:'11px'}}>© 2026 Inverfin Holding<br/><span style={{fontStyle:'italic'}}>Created by Jesús Santiago</span></div>
+      </div>
+
+      {/* panel blanco */}
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'32px',background:'#fafaf8'}}>
+        <div className="fi" style={{width:'100%',maxWidth:'360px'}}>
+          {/* mobile logo */}
+          <div className="lg:hidden" style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'36px'}}>
+            <img src={LOGO} style={{width:'32px',height:'32px',borderRadius:'8px'}} alt=""/>
+            <div>
+              <div className="g" style={{fontSize:'18px',fontWeight:500,color:'#111'}}>InverWork</div>
+              <div style={{fontSize:'9px',color:'#bbb',letterSpacing:'2px',textTransform:'uppercase'}}>Inverfin Holding</div>
+            </div>
+          </div>
+
+          <div className="g" style={{fontSize:'30px',fontWeight:500,color:'#111',marginBottom:'4px'}}>{mode==='in'?'Iniciar sesión':'Crear cuenta'}</div>
+          <div style={{fontSize:'13px',color:'#888',marginBottom:'28px'}}>{mode==='in'?'Accede con tu nombre y PIN.':'Elige un nombre y un PIN de 4 dígitos.'}</div>
+
+          <In label="Nombre" placeholder="Tu nombre completo" value={name} onChange={e=>setName(e.target.value)}/>
+          <In label="PIN" type="password" maxLength={4} inputMode="numeric" placeholder="••••" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==='Enter'&&(mode==='in'?login():register())}/>
+
+          {mode==='reg'&&(
+            <>
+              <Field label="Rol">
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                  {['empleado','gerencia'].map(r=>(
+                    <button key={r} onClick={()=>setRole(r)} style={{padding:'12px',border:`1px solid ${role===r?'#111':'#e4e4e0'}`,borderRadius:'8px',background:role===r?'#111':'#fff',color:role===r?'#fff':'#888',fontSize:'13px',fontWeight:500,cursor:'pointer',fontFamily:'inherit',textTransform:'capitalize',transition:'all .15s'}}>{r}</button>
+                  ))}
+                </div>
+              </Field>
+              {role==='gerencia'&&<In label="Código de gerencia" placeholder="Código confidencial" value={code} onChange={e=>setCode(e.target.value)}/>}
+              <Field label="Departamento">
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                  {[['it','💻 IT'],['consultoria','📊 Consultoría']].map(([v,lbl])=>(
+                    <button key={v} onClick={()=>{setDept(v);setDeptCode('')}} style={{padding:'12px',border:`1px solid ${dept===v?'#4f73f5':'#e4e4e0'}`,borderRadius:'8px',background:dept===v?'#eef1fe':'#fff',color:dept===v?'#4f73f5':'#888',fontSize:'13px',fontWeight:500,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>{lbl}</button>
+                  ))}
+                </div>
+              </Field>
+              <In label={`Código de ${dept==='it'?'IT':'Consultoría'}`} placeholder="Código del departamento" value={deptCode} onChange={e=>setDeptCode(e.target.value)}/>
+            </>
+          )}
+
+          {err&&<div style={{color:'#e74c3c',fontSize:'12px',marginBottom:'12px'}}>⚠ {err}</div>}
+
+          <Btn full onClick={mode==='in'?login:register} dis={busy} style={{marginBottom:'16px'}}>
+            {busy?'Cargando…':mode==='in'?'Entrar →':'Crear cuenta →'}
+          </Btn>
+          <div style={{textAlign:'center',fontSize:'13px',color:'#888'}}>
+            {mode==='in'?<>¿Sin cuenta? <span onClick={()=>{setMode('reg');setErr('')}} style={{color:'#111',textDecoration:'underline',cursor:'pointer'}}>Regístrate</span></>
+                        :<>¿Ya tienes cuenta? <span onClick={()=>{setMode('in');setErr('')}} style={{color:'#111',textDecoration:'underline',cursor:'pointer'}}>Entrar</span></>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─ SIDEBAR — TrackingTime dark navy ─ */
+const Sidebar=({user,tab,go,tabs,synced,notifs,onNotif,onLogout})=>{
+  const roles={admin:'Admin',gerencia:'Gerencia',empleado:'Empleado'};
+  return(
+    <aside style={{width:'220px',flexShrink:0,background:'#1e2433',display:'flex',flexDirection:'column',height:'100vh',position:'sticky',top:0,zIndex:10}}>
+      {/* logo */}
+      <div style={{padding:'20px 16px 16px',borderBottom:'1px solid rgba(255,255,255,.07)',display:'flex',alignItems:'center',gap:'10px'}}>
+        <img src={LOGO} style={{width:'30px',height:'30px',borderRadius:'8px'}} alt=""/>
+        <div>
+          <div className="g" style={{fontSize:'16px',fontWeight:600,color:'#fff',lineHeight:1}}>InverWork</div>
+          <div style={{fontSize:'9px',color:'rgba(255,255,255,.3)',letterSpacing:'2px',textTransform:'uppercase',marginTop:'3px'}}>Inverfin</div>
+        </div>
+      </div>
+      {/* nav */}
+      <nav style={{flex:1,padding:'10px 8px',overflowY:'auto',display:'flex',flexDirection:'column',gap:'2px'}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>go(t.id)}
+            style={{display:'flex',alignItems:'center',gap:'9px',padding:'9px 12px',borderRadius:'7px',border:'none',cursor:'pointer',textAlign:'left',fontSize:'13px',fontWeight:500,transition:'all .15s',fontFamily:'inherit',
+              background:tab===t.id?'rgba(79,115,245,.25)':'transparent',
+              color:tab===t.id?'#7fa4ff':'rgba(255,255,255,.55)'}}
+            onMouseEnter={e=>{if(tab!==t.id){e.currentTarget.style.background='rgba(255,255,255,.06)';e.currentTarget.style.color='rgba(255,255,255,.85)'}}}
+            onMouseLeave={e=>{if(tab!==t.id){e.currentTarget.style.background='transparent';e.currentTarget.style.color='rgba(255,255,255,.55)'}}}>
+            <span style={{fontSize:'15px',width:'18px',textAlign:'center',opacity:tab===t.id?1:.7}}>{t.icon}</span>
+            {t.label}
+            {tab===t.id&&<span style={{marginLeft:'auto',width:'5px',height:'5px',borderRadius:'50%',background:'#4f73f5',flexShrink:0}}/>}
+          </button>
+        ))}
+      </nav>
+      {/* footer */}
+      <div style={{borderTop:'1px solid rgba(255,255,255,.07)',padding:'10px 8px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'4px 12px',marginBottom:'4px'}}>
+          <span style={{width:'5px',height:'5px',borderRadius:'50%',background:synced?'#22c55e':'rgba(255,255,255,.2)',flexShrink:0}}/>
+          <span style={{fontSize:'11px',color:'rgba(255,255,255,.3)',flex:1}}>{synced?'Sincronizado':'Conectando…'}</span>
+          {notifs>0&&<button onClick={onNotif} style={{fontSize:'11px',fontWeight:700,color:'#22c55e',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>🔔{notifs}</button>}
+        </div>
+        <button onClick={onLogout}
+          style={{width:'100%',display:'flex',alignItems:'center',gap:'9px',padding:'9px 12px',borderRadius:'7px',border:'none',cursor:'pointer',background:'transparent',fontFamily:'inherit',transition:'all .15s'}}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.06)'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <div style={{width:'28px',height:'28px',borderRadius:'50%',background:'#4f73f5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:700,color:'#fff',flexShrink:0}}>{user.name[0].toUpperCase()}</div>
+          <div style={{flex:1,minWidth:0,textAlign:'left'}}>
+            <div style={{fontSize:'12px',fontWeight:500,color:'rgba(255,255,255,.85)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.name}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'4px',marginTop:'2px'}}>
+              <span style={{fontSize:'9px',fontWeight:700,color:'rgba(255,255,255,.5)',textTransform:'uppercase',letterSpacing:'1px',background:'rgba(255,255,255,.08)',padding:'1px 6px',borderRadius:'99px'}}>{roles[user.role]||user.role}</span>
+            </div>
+          </div>
+          <span style={{fontSize:'11px',color:'rgba(255,255,255,.2)'}}>↩</span>
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+/* ─ MOBILE HEADER ─ */
+const MobileBar=({user,tab,go,tabs,notifs,onNotif,onLogout})=>(
+  <div style={{position:'sticky',top:0,zIndex:50,background:'#1e2433'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+        <img src={LOGO} style={{width:'26px',height:'26px',borderRadius:'6px'}} alt=""/>
+        <span className="g" style={{fontSize:'16px',fontWeight:600,color:'#fff'}}>InverWork</span>
+      </div>
+      <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
+        {notifs>0&&<button onClick={onNotif} style={{background:'none',border:'none',cursor:'pointer',fontSize:'16px'}}>🔔</button>}
+        <button onClick={onLogout} style={{fontSize:'12px',color:'rgba(255,255,255,.5)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Salir</button>
+      </div>
+    </div>
+    <div style={{display:'flex',overflowX:'auto',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+      {tabs.map(t=>(
+        <button key={t.id} onClick={()=>go(t.id)}
+          style={{flexShrink:0,padding:'9px 14px',fontSize:'12px',fontWeight:500,border:'none',borderBottom:`2px solid ${tab===t.id?'#4f73f5':'transparent'}`,color:tab===t.id?'#7fa4ff':'rgba(255,255,255,.45)',background:'transparent',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all .15s'}}>
+          {t.icon} {t.label}
+        </button>
+      ))}
+    </div>
   </div>
-</div>
+);
 
-<div class="footer">InverWork · Inverfin Holding · Created by Jesús Santiago · © 2026</div>
-
-<script>
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-const scoreEl=document.getElementById('score');
-let W,H,dpr,GROUND;
-function resize(){
-  dpr=window.devicePixelRatio||1;W=window.innerWidth;H=window.innerHeight;
-  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
-  ctx.scale(dpr,dpr);GROUND=H*.62;
-}
-resize();window.addEventListener('resize',()=>{resize();makeBG();});
-
-let score=0,hiScore=0,dead=false,started=false,speed=5,frame=0,scoreFloat=0,scrollX=0;
-const P={x:96,y:0,vy:0,onGround:true,jumps:0,maxJumps:2,w:42,h:52,animF:0,sq:1,st:1};
-let obstacles=[],nextObs=120,coins=[],nextCoin=60,parts=[],msgs=[];
-
-/* ── Stars ── */
-const stars=Array.from({length:70},()=>({x:Math.random(),y:Math.random()*.5,r:Math.random()*1.3+.4,t:Math.random()*6.28}));
-
-/* ── Buildings ── */
-const buildings=[];
-function makeBG(){
-  buildings.length=0;let x=0;
-  while(x<W+300){
-    const bh=50+Math.random()*180,bw=28+Math.random()*65,layer=Math.random()<.5?0:1;
-    const wins=[];
-    for(let wy=8;wy<bh-10;wy+=14)for(let wx=4;wx<bw-6;wx+=11)if(Math.random()>.3)wins.push({x:wx,y:wy,on:Math.random()>.4});
-    buildings.push({x,w:bw,h:bh,layer,wins});x+=bw+3+Math.random()*22;
-  }
-}
-makeBG();
-
-/* ── Round rect ── */
-function rr(x,y,w,h,r){
-  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
-  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
-  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
-  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
-}
-
-/* ── Leaf ── */
-function leaf(x,y,sz,af){
-  const w=Math.sin(af*.06)*10;
-  ctx.save();ctx.translate(x,y);ctx.rotate(w*Math.PI/180);
-  ctx.beginPath();ctx.moveTo(0,sz);
-  ctx.bezierCurveTo(-sz*.9,sz*.3,-sz*.9,-sz*.4,0,-sz*.05);
-  ctx.bezierCurveTo(sz*.9,-sz*.4,sz*.9,sz*.3,0,sz);
-  ctx.fillStyle='#5a9e3a';ctx.fill();
-  ctx.beginPath();ctx.moveTo(0,sz*.85);ctx.lineTo(0,-sz*.05);
-  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=.8;ctx.stroke();
-  ctx.restore();
-}
-
-/* ── Limb ── */
-function limb(x,y,w,h){
-  rr(x-w/2,y,w,h,w/2);
-  ctx.fillStyle='#1e2433';ctx.fill();
-  ctx.strokeStyle='rgba(79,115,245,.35)';ctx.lineWidth=1.5;ctx.stroke();
-}
-
-/* ── Draw Invy ── */
-function drawInvy(x,y,af,sq,st,isDead){
-  const bw=P.w*sq,bh=P.h*st,bx=x-bw/2,by=y-bh;
-  ctx.save();ctx.translate(x,y-bh/2);ctx.scale(sq,st);ctx.translate(-x,-(y-bh/2));
-  if(isDead){ctx.globalAlpha=.55;ctx.save();ctx.translate(x,y-bh/2);ctx.rotate(.35);ctx.translate(-x,-(y-bh/2));}
-
-  /* body */
-  rr(bx+2,by+2,bw-4,bh-10,10);
-  ctx.fillStyle='#1e2433';ctx.fill();
-  ctx.strokeStyle='rgba(79,115,245,.45)';ctx.lineWidth=2;ctx.stroke();
-  /* shine */
-  rr(bx+4,by+4,bw-8,(bh-12)*.38,7);ctx.fillStyle='rgba(255,255,255,.05)';ctx.fill();
-  /* "in" */
-  ctx.font='bold 17px serif';ctx.fillStyle='rgba(240,246,255,.88)';
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('in',x,by+(bh-10)*.58);
-  /* leaf */
-  leaf(x-5,by+6,11,af);
-  /* eyes */
-  const eyeY=by+(bh-10)*.27;
-  [-9,9].forEach((ox,ei)=>{
-    ctx.beginPath();ctx.arc(x+ox,eyeY,5,0,Math.PI*2);ctx.fillStyle='#f0f6ff';ctx.fill();
-    if(!isDead){
-      const blink=Math.abs(Math.sin(af*.04+ei*.5))>.94?.4:2.5;
-      ctx.beginPath();ctx.arc(x+ox+Math.sin(af*.03)*1.8,eyeY+Math.cos(af*.04)*1.2,blink,0,Math.PI*2);
-      ctx.fillStyle='#0a0f1a';ctx.fill();
-    }else{
-      ctx.font='8px sans-serif';ctx.fillStyle='#0a0f1a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('×',x+ox,eyeY);
-    }
-  });
-  /* mouth */
-  ctx.beginPath();
-  if(isDead)ctx.arc(x,by+(bh-10)*.6,7,Math.PI*.1,Math.PI*.9,true);
-  else ctx.arc(x,by+(bh-10)*.6,7,Math.PI*.1,Math.PI*.9);
-  ctx.strokeStyle='rgba(240,246,255,.6)';ctx.lineWidth=2;ctx.stroke();
-
-  /* arms */
-  const swing=Math.sin(af*.18)*22;
-  ctx.save();ctx.translate(bx+2,by+(bh-10)*.37);ctx.rotate((-28+swing)*Math.PI/180);limb(0,0,8,24);ctx.restore();
-  ctx.save();ctx.translate(bx+bw-2,by+(bh-10)*.37);ctx.rotate((28-swing)*Math.PI/180);limb(0,0,8,24);ctx.restore();
-  /* tool */
-  if(!isDead){
-    ctx.save();ctx.translate(bx+bw+17,by+(bh-10)*.37+22+Math.sin(af*.18)*8);ctx.rotate(swing*.015);
-    ctx.font='15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🔧',0,0);ctx.restore();
-  }
-  /* legs */
-  const legY=by+bh-12,legSw=Math.sin(af*.18)*28;
-  ctx.save();ctx.translate(x-9,legY);ctx.rotate(-legSw*Math.PI/180);limb(0,0,9,20);ctx.restore();
-  ctx.save();ctx.translate(x+9,legY);ctx.rotate(legSw*Math.PI/180);limb(0,0,9,20);ctx.restore();
-  /* shoes */
-  [[-9,Math.sin(af*.18)],[9,-Math.sin(af*.18)]].forEach(([ox,sw],i)=>{
-    const sx=x+ox+sw*4,sy=legY+20;
-    rr(sx-9,sy-5,18,10,5);
-    ctx.fillStyle=i===0?'#4f73f5':'#5a9e3a';ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.stroke();
-  });
-
-  if(isDead){ctx.restore();ctx.globalAlpha=1;}
-  ctx.restore();
-}
-
-/* ── City ── */
-function drawCity(){
-  ctx.fillStyle='#080d18';ctx.fillRect(0,0,W,GROUND);
-  stars.forEach(s=>{
-    ctx.beginPath();ctx.arc(s.x*W,s.y*GROUND,s.r,0,Math.PI*2);
-    ctx.fillStyle=`rgba(200,215,255,${.3+.25*Math.sin(s.t+frame*.008)})`;ctx.fill();
-  });
-  /* moon */
-  ctx.beginPath();ctx.arc(W*.83,GROUND*.16,20,0,Math.PI*2);ctx.fillStyle='rgba(200,225,190,.06)';ctx.fill();
-  /* buildings */
-  buildings.forEach(b=>{
-    const spd=b.layer?0.38:0.22;
-    let bx=(b.x-scrollX*spd)%(W+350);if(bx<-b.w-5)bx+=W+400;
-    const by=GROUND-b.h;
-    ctx.fillStyle=b.layer?'#111827':'#0d1320';ctx.fillRect(bx,by,b.w,b.h);
-    ctx.strokeStyle=b.layer?'rgba(79,115,245,.09)':'rgba(79,115,245,.05)';ctx.lineWidth=.5;ctx.strokeRect(bx,by,b.w,b.h);
-    b.wins.forEach(w=>{
-      ctx.fillStyle=w.on?'rgba(200,220,255,.45)':'rgba(79,115,245,.05)';
-      ctx.fillRect(bx+w.x,by+w.y,7,7);
-    });
-    if(b.layer&&b.w>44){
-      ctx.strokeStyle='rgba(79,115,245,.18)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(bx+b.w/2,by);ctx.lineTo(bx+b.w/2,by-18);ctx.stroke();
-      ctx.beginPath();ctx.arc(bx+b.w/2,by-20,2.5,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill();
-    }
-  });
-  /* fog */
-  const fog=ctx.createLinearGradient(0,GROUND*.72,0,GROUND);
-  fog.addColorStop(0,'transparent');fog.addColorStop(1,'rgba(8,13,24,.55)');
-  ctx.fillStyle=fog;ctx.fillRect(0,GROUND*.72,W,GROUND*.28);
-}
-
-/* ── Ground ── */
-function drawGround(){
-  ctx.fillStyle='#192030';ctx.fillRect(0,GROUND,W,H-GROUND);
-  ctx.fillStyle='#4f73f5';ctx.fillRect(0,GROUND,W,2.5);
-  ctx.strokeStyle='rgba(79,115,245,.07)';ctx.lineWidth=1;
-  for(let gx=-scrollX%64;gx<W+64;gx+=64){ctx.beginPath();ctx.moveTo(gx,GROUND);ctx.lineTo(gx,H);ctx.stroke();}
-  ctx.strokeStyle='rgba(79,115,245,.03)';
-  for(let gx=-scrollX%64;gx<W+64;gx+=64){ctx.beginPath();ctx.moveTo(gx+32,GROUND+4);ctx.lineTo(gx+32,GROUND+18);ctx.stroke();}
-}
-
-/* ── Obstacle types ── */
-const OTYPES=[
-  {w:26,h:46,col:'#ef4444',lbl:'Bug',ico:'🐛'},
-  {w:38,h:30,col:'#f97316',lbl:'Error',ico:'404'},
-  {w:20,h:62,col:'#dc2626',lbl:'Crash',ico:'💥'},
-  {w:48,h:26,col:'#7c3aed',lbl:'Timeout',ico:'⏱'},
-];
-function spawnObs(){
-  const t=OTYPES[Math.floor(Math.random()*OTYPES.length)];
-  obstacles.push({x:W+60,w:t.w,h:t.h,col:t.col,lbl:t.lbl,ico:t.ico});
-}
-function drawObs(o){
-  const y=GROUND-o.h;
-  rr(o.x,y,o.w,o.h,5);ctx.fillStyle=o.col;ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1.5;ctx.stroke();
-  rr(o.x+2,y+2,o.w-4,o.h*.32,3);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();
-  ctx.font='bold 9px DM Sans,sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(o.lbl,o.x+o.w/2,y+o.h*.36);
-  ctx.font='11px sans-serif';ctx.fillText(o.ico,o.x+o.w/2,y+o.h*.7);
-  for(let i=0;i<3;i++){const sx=o.x+o.w*.2+i*o.w*.25;ctx.beginPath();ctx.moveTo(sx,y);ctx.lineTo(sx-5,y-13);ctx.lineTo(sx+5,y-13);ctx.closePath();ctx.fillStyle=o.col;ctx.fill();}
-}
-
-/* ── Coins ── */
-function spawnCoin(){coins.push({x:W+20,y:GROUND-65-Math.random()*75,c:false,sc:1,a:1});}
-function drawCoin(c){
-  ctx.save();ctx.translate(c.x,c.y);ctx.scale(c.sc,c.sc);
-  ctx.beginPath();ctx.arc(0,0,7.5,0,Math.PI*2);
-  ctx.fillStyle=`rgba(255,200,50,${c.a})`;ctx.fill();
-  ctx.strokeStyle=`rgba(220,150,0,${c.a*.7})`;ctx.lineWidth=2;ctx.stroke();
-  ctx.font='bold 8px sans-serif';ctx.fillStyle=`rgba(150,80,0,${c.a})`;
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('i',0,0);
-  ctx.restore();
-}
-
-/* ── Particles ── */
-function dust(x,y){for(let i=0;i<5;i++)parts.push({x,y,vx:(Math.random()-.5)*2.5,vy:-(Math.random()*2+.5),l:1,s:Math.random()*3+1,col:null});}
-function explode(x,y){
-  for(let i=0;i<18;i++){const a=Math.random()*Math.PI*2,sp=Math.random()*6+2;
-    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,l:1,s:Math.random()*5+2,col:i%2?'#5a9e3a':'#4f73f5'});}
-}
-
-/* ── Jump / respawn ── */
-function jump(){
-  if(!started){started=true;return;}
-  if(dead){respawn();return;}
-  if(P.jumps<P.maxJumps){
-    P.vy=-15.5;P.onGround=false;P.jumps++;P.sq=.82;P.st=1.28;
-    dust(P.x,GROUND);
-    document.getElementById('jumpHint').textContent=P.jumps===1?'▲ Doble salto!':'⚡ Doble salto activado';
-  }
-}
-function respawn(){
-  dead=false;score=0;scoreFloat=0;speed=5;frame=0;
-  obstacles.length=0;coins.length=0;parts.length=0;msgs.length=0;nextObs=120;nextCoin=60;
-  P.y=0;P.vy=0;P.onGround=true;P.jumps=0;P.animF=0;
-  scoreEl.textContent='0';
-  document.getElementById('jumpHint').textContent='espacio / tap — saltar';
-}
-
-document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}});
-cv.addEventListener('click',jump);
-cv.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
-
-/* ── Main loop ── */
-let lastT=0;
-function loop(ts){
-  requestAnimationFrame(loop);
-  const dt=Math.min((ts-lastT)/16.67,2.5);lastT=ts;
-  ctx.clearRect(0,0,W,H);
-  drawCity();drawGround();
-
-  if(!started){
-    P.y=GROUND;P.animF+=dt*.5;
-    const iy=GROUND-Math.abs(Math.sin(P.animF*.04))*5;
-    drawInvy(P.x,iy,P.animF,1,1,false);
-    ctx.font='bold 14px DM Sans,sans-serif';ctx.fillStyle='rgba(240,246,255,.45)';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.globalAlpha=.5+.35*Math.sin(frame*.06);
-    ctx.fillText('ESPACIO / TAP para empezar',W/2,GROUND-90);ctx.globalAlpha=1;
-    frame++;return;
-  }
-
-  frame++;
-  if(!dead){
-    scoreFloat+=speed*.026*dt;score=Math.floor(scoreFloat);
-    if(score>hiScore)hiScore=score;scoreEl.textContent=score;
-    speed=5+score*.003;scrollX+=speed*dt;
-  }
-
-  /* physics */
-  if(!dead){
-    P.vy+=.68*dt;P.y+=P.vy*dt;
-    if(P.y>=GROUND){
-      if(P.vy>3)dust(P.x,GROUND);
-      P.y=GROUND;P.vy=0;P.onGround=true;P.jumps=0;
-      if(P.sq<1){P.sq=.78;P.st=1.18;}
-      document.getElementById('jumpHint').textContent='espacio / tap — saltar';
-    }
-    P.sq+=(1-P.sq)*.2;P.st+=(1-P.st)*.2;
-    P.animF+=dt*(P.onGround?2.4:1.3);
-  }
-
-  /* obstacles */
-  if(!dead){nextObs-=speed*dt;if(nextObs<=0){spawnObs();nextObs=155+Math.random()*210-Math.min(score*.4,70);}}
-  obstacles=obstacles.filter(o=>{
-    o.x-=speed*dt;
-    if(!dead){
-      const ix=P.x-15,iy=P.y-P.h*.88,iw=30,ih=P.h*.82;
-      if(ix<o.x+o.w&&ix+iw>o.x&&iy<GROUND-o.h*.05&&iy+ih>GROUND-o.h){
-        dead=true;explode(P.x,P.y-P.h/2);P.vy=-11;
-        document.getElementById('jumpHint').textContent='¡Invy cayó! — Tap para reintentar';
-        scoreEl.textContent='💥 '+score;
+/* ─ DASHBOARD ─ */
+const Dashboard=({user,projects,allTasks,reports,go})=>{
+  const admin=user.role==='admin'||user.role==='gerencia';
+  const myP=admin?Object.entries(projects):Object.entries(projects).filter(([,p])=>p.ownerId===user.id);
+  const today=new Date().toDateString();
+  const todayH=Object.values(reports||{}).filter(r=>r.userId===user.id&&new Date(r.date).toDateString()===today).reduce((s,r)=>s+(+r.hoursWorked||0),0);
+  const myT=myP.flatMap(([pid])=>Object.values(allTasks[pid]||{}));
+  const stats=[
+    {n:myP.filter(([,p])=>['Activo','En progreso'].includes(p.status)).length, l:'Proyectos activos'},
+    {n:myT.filter(t=>t.status==='Pendiente').length,                            l:'Tareas pendientes'},
+    {n:myT.filter(t=>t.status==='Completado').length,                           l:'Completadas'},
+    {n:todayH+'h',                                                               l:'Horas hoy'},
+  ];
+  return(
+    <div className="fi">
+      <div style={{marginBottom:'24px'}}>
+        <div style={{fontSize:'11px',color:'#aaa',textTransform:'uppercase',letterSpacing:'2px',marginBottom:'6px'}}>{new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+        <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Bienvenido, {user.name}</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'12px',marginBottom:'24px'}}>
+        {stats.map((s,i)=>(
+          <div key={i} style={{background:'#fff',padding:'18px 22px',borderRadius:'10px',border:'1px solid #e8eaed',boxShadow:'0 1px 3px rgba(0,0,0,.05)'}}>
+            <div className="g" style={{fontSize:'34px',fontWeight:500,color:'#111',marginBottom:'3px'}}>{s.n}</div>
+            <div style={{fontSize:'12px',color:'#888'}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
+        <div className="g" style={{fontSize:'20px',fontWeight:500}}>Proyectos recientes</div>
+        <button onClick={()=>go('projects')} style={{fontSize:'12px',color:'#888',background:'none',border:'none',cursor:'pointer',textDecoration:'underline',fontFamily:'inherit'}}>Ver todos →</button>
+      </div>
+      {myP.length===0
+        ?<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'48px',textAlign:'center',color:'#9ca3af',fontSize:'13px'}}>Sin proyectos aún. <span onClick={()=>go('projects')} style={{textDecoration:'underline',cursor:'pointer'}}>Crear uno →</span></div>
+        :<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+          {myP.slice(0,6).map(([pid,p],i)=>{
+            const v=pct(allTasks[pid]||{});
+            return(
+              <div key={pid} onClick={()=>go('proj',pid,p)}
+                style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 18px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff',cursor:'pointer',transition:'background .1s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#fafaf8'}
+                onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:500,color:'#111',marginBottom:'5px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                  <Bar v={v}/>
+                </div>
+                <span style={{fontSize:'11px',color:'#888',fontFamily:'monospace',width:'30px',textAlign:'right'}}>{v}%</span>
+                <Tag s={p.status}/>
+              </div>
+            );
+          })}
+        </div>
       }
+    </div>
+  );
+};
+
+/* ─ PROJECTS LIST — TrackingTime style ─ */
+const ProjectCard=({pid,p,tasks,onClick,onDelete,canDelete})=>{
+  const color=getColor(pid);
+  const v=pct(tasks);
+  const total=Object.keys(tasks).length;
+  const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
+  const inProg=Object.values(tasks).filter(t=>t.status==='En progreso').length;
+  return(
+    <div onClick={onClick}
+      style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',cursor:'pointer',transition:'all .18s',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}
+      onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';e.currentTarget.style.transform='translateY(-1px)'}}
+      onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 1px 3px rgba(0,0,0,.06)';e.currentTarget.style.transform='none'}}>
+      {/* color bar */}
+      <div style={{height:'4px',background:color}}/>
+      <div style={{padding:'16px'}}>
+        {/* header */}
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'10px'}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:600,color:'#1a1d23',fontSize:'14px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:'3px'}}>{p.name}</div>
+            <div style={{fontSize:'12px',color:'#9ca3af'}}>{p.ownerName}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:'6px',marginLeft:'8px',flexShrink:0}}>
+            <Tag s={p.status}/>
+            {canDelete&&<button onClick={e=>{e.stopPropagation();if(confirm('¿Eliminar?'))onDelete()}}
+              style={{width:'22px',height:'22px',borderRadius:'50%',border:'none',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontFamily:'inherit'}}
+              onMouseEnter={e=>e.currentTarget.style.color='#ef4444'}
+              onMouseLeave={e=>e.currentTarget.style.color='#d1d5db'}>×</button>}
+          </div>
+        </div>
+        {/* progress */}
+        <div style={{marginBottom:'12px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:'11px',color:'#9ca3af',marginBottom:'5px'}}>
+            <span>Progreso</span>
+            <span style={{fontWeight:600,color:v===100?'#22c55e':'#1a1d23'}}>{v}%</span>
+          </div>
+          <div style={{height:'5px',background:'#f3f4f6',borderRadius:'99px',overflow:'hidden'}}>
+            <div style={{height:'100%',width:v+'%',background:v===100?'#22c55e':color,borderRadius:'99px',transition:'width .5s'}}/>
+          </div>
+        </div>
+        {/* stats row */}
+        <div style={{display:'flex',gap:'12px',fontSize:'12px',color:'#6b7280'}}>
+          <span style={{display:'flex',alignItems:'center',gap:'4px'}}>
+            <span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#9ca3af'}}/>
+            {total} tareas
+          </span>
+          {inProg>0&&<span style={{display:'flex',alignItems:'center',gap:'4px'}}>
+            <span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#4f73f5'}}/>
+            {inProg} en progreso
+          </span>}
+          <span style={{display:'flex',alignItems:'center',gap:'4px'}}>
+            <span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#22c55e'}}/>
+            {done} completadas
+          </span>
+        </div>
+        {/* dept-specific extra info */}
+        {p.department==='consultoria'&&p.client&&(
+          <div style={{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid #f3f4f6',display:'flex',flexDirection:'column',gap:'4px'}}>
+            <div style={{fontSize:'11px',color:'#6b7280',display:'flex',gap:'5px',alignItems:'center'}}><span>🏢</span><span style={{fontWeight:600,color:'#1a1d23'}}>{p.client}</span></div>
+            {p.consultType&&<div style={{fontSize:'11px',color:'#9ca3af'}}>{p.consultType}</div>}
+            {p.fees&&<div style={{fontSize:'11px',color:'#7c3aed',fontWeight:600}}>{Number(p.fees).toLocaleString('es-ES')} FCFA</div>}
+          </div>
+        )}
+        {p.department==='it'&&p.techStack&&(
+          <div style={{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid #f3f4f6'}}>
+            <div style={{fontSize:'11px',color:'#0369a1',fontWeight:600,display:'flex',alignItems:'center',gap:'4px'}}><span>⚙️</span>{p.techStack}</div>
+            {p.environment&&<div style={{fontSize:'10px',color:'#9ca3af',marginTop:'2px'}}>{p.environment}</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─ CONSULTORÍA WELCOME BANNER ─ */
+const ConsultoriaBanner=({user,onDismiss})=>{
+  const KEY='iw_cons_banner_seen';
+  const[vis,setVis]=useState(!localStorage.getItem(KEY));
+  if(!vis||user.department!=='consultoria')return null;
+  const close=()=>{setVis(false);localStorage.setItem(KEY,'1');if(onDismiss)onDismiss()};
+  return portal(
+    <div style={{position:'fixed',inset:0,zIndex:9200,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px',background:'rgba(0,0,0,.45)'}}>
+      <div className="mi" style={{width:'100%',maxWidth:'520px',borderRadius:'20px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,.4)'}}>
+        {/* gradient header */}
+        <div style={{background:'linear-gradient(135deg,#0f2a5e 0%,#1e4db7 40%,#4f73f5 70%,#7c3aed 100%)',padding:'36px 32px 28px',position:'relative',overflow:'hidden'}}>
+          {/* decorative circles */}
+          <div style={{position:'absolute',top:'-40px',right:'-40px',width:'160px',height:'160px',borderRadius:'50%',background:'rgba(255,255,255,.06)'}}/>
+          <div style={{position:'absolute',bottom:'-30px',left:'60px',width:'100px',height:'100px',borderRadius:'50%',background:'rgba(255,255,255,.04)'}}/>
+          <div style={{position:'relative'}}>
+            <div style={{fontSize:'36px',marginBottom:'12px'}}>📊</div>
+            <div className="g" style={{color:'#fff',fontSize:'26px',fontWeight:600,lineHeight:1.2,marginBottom:'8px'}}>
+              Bienvenido al equipo de Consultoría
+            </div>
+            <div style={{color:'rgba(255,255,255,.65)',fontSize:'13.5px',lineHeight:1.6}}>
+              Tu espacio de trabajo ya está listo en <b style={{color:'#fff'}}>InverWork</b>.
+            </div>
+          </div>
+        </div>
+        {/* body */}
+        <div style={{background:'#0d1117',padding:'28px 32px'}}>
+          <div style={{color:'rgba(255,255,255,.3)',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'16px'}}>Tu entorno de trabajo</div>
+          <div style={{display:'flex',flexDirection:'column',gap:'13px',marginBottom:'24px'}}>
+            {[
+              {icon:'🎯',color:'#818cf8',title:'Proyectos de Consultoría',desc:'Gestiona mandatos, clientes, entregables y honorarios desde un solo lugar.'},
+              {icon:'🤝',color:'#34d399',title:'Colaboración con IT cuando se necesite',desc:'Puedes ser invitado a proyectos de IT y trabajar junto a ese equipo en tiempo real.'},
+              {icon:'🔒',color:'#f59e0b',title:'Privacidad garantizada',desc:'Tus proyectos solo son visibles para tu equipo — salvo colaboraciones expresas.'},
+            ].map(({icon,color,title,desc},i)=>(
+              <div key={i} style={{display:'flex',gap:'14px',alignItems:'flex-start'}}>
+                <span style={{width:'32px',height:'32px',borderRadius:'9px',background:color+'18',border:`1px solid ${color}30`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',flexShrink:0}}>{icon}</span>
+                <div>
+                  <div style={{color:'rgba(255,255,255,.85)',fontSize:'13px',fontWeight:600,marginBottom:'3px'}}>{title}</div>
+                  <div style={{color:'rgba(255,255,255,.35)',fontSize:'12px',lineHeight:1.55}}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:'rgba(79,115,245,.1)',border:'1px solid rgba(79,115,245,.2)',borderRadius:'10px',padding:'12px 16px',marginBottom:'20px',display:'flex',alignItems:'center',gap:'10px'}}>
+            <span style={{fontSize:'18px'}}>👤</span>
+            <div>
+              <div style={{color:'#818cf8',fontSize:'12px',fontWeight:700}}>Conectado como: {user.name}</div>
+              <div style={{color:'rgba(255,255,255,.3)',fontSize:'11px',marginTop:'1px'}}>Departamento · Consultoría · Inverfin Holding</div>
+            </div>
+          </div>
+          <button onClick={close}
+            style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#4f73f5,#7c3aed)',border:'none',borderRadius:'10px',color:'#fff',fontSize:'14px',fontWeight:700,cursor:'pointer',letterSpacing:'.01em',transition:'opacity .15s'}}
+            onMouseEnter={e=>e.currentTarget.style.opacity='.85'}
+            onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+            Empezar a trabajar →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─ DEPT badge helper ─ */
+const DeptBadge=({dept})=>{
+  if(dept==='consultoria') return <span style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:'99px',padding:'2px 8px'}}>📊 Consultoría</span>;
+  if(dept==='it')          return <span style={{fontSize:'10px',fontWeight:700,color:'#0369a1',background:'#f0f9ff',border:'1px solid #bae6fd',borderRadius:'99px',padding:'2px 8px'}}>💻 IT</span>;
+  return null;
+};
+
+const ProjectsList=({user,projects,allTasks,openProject,allCollabs})=>{
+  const[show,setShow]=useState(false);
+  /* IT fields */
+  const[nm,setNm]=useState('');
+  const[desc,setDesc]=useState('');
+  const[sd,setSd]=useState('');
+  const[ed,setEd]=useState('');
+  const[st,setSt]=useState('Activo');
+  const[techStack,setTechStack]=useState('');
+  const[environment,setEnvironment]=useState('Desarrollo');
+  const[repoUrl,setRepoUrl]=useState('');
+  /* Consultoría fields */
+  const[client,setClient]=useState('');
+  const[consultType,setConsultType]=useState('Estrategia empresarial');
+  const[deliverables,setDeliverables]=useState('');
+  const[fees,setFees]=useState('');
+  const[reportDate,setReportDate]=useState('');
+  const[leadConsultant,setLeadConsultant]=useState('');
+
+  const admin=user.role==='admin'||user.role==='gerencia';
+  const userDept=user.department||'it';
+
+  /* visibility rule */
+  const canSeeProject=(pid,p)=>{
+    if(admin)return true;
+    if((p.department||'it')===userDept)return true;
+    // check if user is a collaborator
+    const cols=allCollabs?.[pid]||{};
+    return Object.values(cols).some(c=>c.userId===user.id);
+  };
+
+  const list=Object.entries(projects).filter(([pid,p])=>canSeeProject(pid,p));
+
+  const doCreate=async()=>{
+    if(!nm.trim())return;
+    const base={name:nm.trim(),description:desc,startDate:sd,endDate:ed,status:st,ownerId:user.id,ownerName:user.name,department:userDept,createdAt:ts(),progress:0};
+    if(userDept==='it'){
+      Object.assign(base,{techStack,environment,repoUrl});
+    } else {
+      Object.assign(base,{client,consultType,deliverables,fees,reportDate,leadConsultant:leadConsultant||user.name});
     }
-    drawObs(o);return o.x>-80;
-  });
+    await window.FB.addProject(base);
+    setShow(false);
+    setNm('');setDesc('');setSd('');setEd('');setSt('Activo');
+    setTechStack('');setEnvironment('Desarrollo');setRepoUrl('');
+    setClient('');setConsultType('Estrategia empresarial');setDeliverables('');setFees('');setReportDate('');setLeadConsultant('');
+  };
 
-  /* coins */
-  if(!dead){nextCoin-=speed*dt;if(nextCoin<=0){spawnCoin();nextCoin=75+Math.random()*95;}}
-  coins=coins.filter(c=>{
-    c.x-=speed*dt;
-    if(!c.c&&Math.abs(c.x-P.x)<18&&Math.abs(c.y-(P.y-P.h/2))<26){
-      c.c=true;scoreFloat+=5;msgs.push({t:'+5',x:c.x,y:c.y,l:1,vy:-1.8});
+  return(
+    <div className="fi">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'24px'}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:'22px',color:'#1a1d23',letterSpacing:'-.02em'}}>Proyectos</div>
+          <div style={{fontSize:'13px',color:'#9ca3af',marginTop:'2px'}}>{list.length} proyecto{list.length!==1?'s':''}</div>
+        </div>
+        {!admin&&<Btn onClick={()=>setShow(true)}>+ Nuevo proyecto</Btn>}
+      </div>
+
+      {list.length===0
+        ?<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'64px',textAlign:'center'}}>
+          <div style={{fontSize:'40px',marginBottom:'12px'}}>📁</div>
+          <div style={{fontWeight:600,fontSize:'16px',color:'#1a1d23',marginBottom:'6px'}}>Sin proyectos</div>
+          <div style={{fontSize:'13px',color:'#9ca3af',marginBottom:'20px'}}>Crea tu primer proyecto para empezar.</div>
+          {!admin&&<Btn onClick={()=>setShow(true)}>Crear proyecto</Btn>}
+        </div>
+        :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'16px'}}>
+          {list.map(([pid,p])=>{
+            const pDept=p.department||'it';
+            const isCross=pDept!==userDept&&!admin;
+            return(
+              <div key={pid} style={{position:'relative'}}>
+                {isCross&&(
+                  <div style={{position:'absolute',top:'12px',left:'12px',zIndex:2,display:'flex',gap:'4px',alignItems:'center'}}>
+                    <DeptBadge dept={pDept}/>
+                    <span style={{fontSize:'10px',color:'#6b7280',background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'99px',padding:'2px 7px'}}>🔗 Colaboración</span>
+                  </div>
+                )}
+                {!isCross&&!admin&&<div style={{position:'absolute',top:'12px',left:'12px',zIndex:2}}><DeptBadge dept={pDept}/></div>}
+                <ProjectCard pid={pid} p={p} tasks={allTasks[pid]||{}}
+                  onClick={()=>openProject(pid,p)}
+                  onDelete={()=>window.FB.delProject(pid)}
+                  canDelete={p.ownerId===user.id}/>
+              </div>
+            );
+          })}
+        </div>
+      }
+
+      {show&&(
+        <Modal title={userDept==='consultoria'?'Nuevo proyecto de Consultoría':'Nuevo proyecto de IT'} onClose={()=>setShow(false)} wide>
+          <In label="Nombre del proyecto *" value={nm} onChange={e=>setNm(e.target.value)} placeholder={userDept==='consultoria'?'Ej. Estrategia Expansión Acme Corp':'Ej. Migración infraestructura cloud'} autoFocus/>
+          <Ta label="Descripción" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Descripción breve (opcional)"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Fecha inicio" type="date" value={sd} onChange={e=>setSd(e.target.value)}/>
+            <In label="Fecha fin est." type="date" value={ed} onChange={e=>setEd(e.target.value)}/>
+          </div>
+          <Se label="Estado" value={st} onChange={e=>setSt(e.target.value)} opts={['Activo','En progreso','Pausado','Finalizado']}/>
+
+          {userDept==='it'?(
+            <>
+              <div style={{margin:'8px 0 14px',borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
+                <div style={{fontSize:'10px',fontWeight:700,color:'#0369a1',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>💻 Datos técnicos</div>
+                <In label="Stack tecnológico" value={techStack} onChange={e=>setTechStack(e.target.value)} placeholder="Ej. React, Node.js, PostgreSQL"/>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                  <Se label="Entorno" value={environment} onChange={e=>setEnvironment(e.target.value)} opts={['Desarrollo','Pruebas','Staging','Producción']}/>
+                  <In label="URL repositorio" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} placeholder="https://github.com/…"/>
+                </div>
+              </div>
+            </>
+          ):(
+            <>
+              <div style={{margin:'8px 0 14px',borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
+                <div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>📊 Datos de consultoría</div>
+                <In label="Cliente / empresa contratante *" value={client} onChange={e=>setClient(e.target.value)} placeholder="Nombre de la empresa cliente"/>
+                <Se label="Tipo de consultoría" value={consultType} onChange={e=>setConsultType(e.target.value)} opts={['Estrategia empresarial','Consultoría financiera','Consultoría legal / compliance','Procesos y operaciones','Transformación organizacional','Due diligence','Otro']}/>
+                <Ta label="Entregables esperados" value={deliverables} onChange={e=>setDeliverables(e.target.value)} placeholder="Ej. Informe ejecutivo, plan de acción, modelo financiero…"/>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                  <In label="Honorarios (FCFA)" type="number" value={fees} onChange={e=>setFees(e.target.value)} placeholder="0"/>
+                  <In label="Fecha entrega informe" type="date" value={reportDate} onChange={e=>setReportDate(e.target.value)}/>
+                </div>
+                <In label="Consultor responsable" value={leadConsultant} onChange={e=>setLeadConsultant(e.target.value)} placeholder={user.name}/>
+              </div>
+            </>
+          )}
+
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setShow(false)}>Cancelar</Btn>
+            <Btn full onClick={doCreate} dis={!nm.trim()||(userDept==='consultoria'&&!client.trim())}>Crear proyecto</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+/* ─ INVITE BANNER — floating, per user ─ */
+const InviteBanner=({user,projects})=>{
+  const[invites,setInvites]=useState({});
+  useEffect(()=>{
+    if(!user?.id)return;
+    return window.FB.onInvites(user.id,d=>setInvites(d||{}));
+  },[user?.id]);
+  const pending=Object.entries(invites).filter(([,v])=>v.status==='pending');
+  if(!pending.length)return null;
+  const[iid,inv]=pending[0];
+  const respond=async(accept)=>{
+    await window.FB.updInvite(iid,{status:accept?'accepted':'declined'});
+    if(accept){
+      await window.FB.addCollab(inv.projectId,{userId:user.id,userName:user.name,role:inv.collabRole||'Colaborador',joinedAt:ts()});
     }
-    if(c.c){c.sc+=.05*dt;c.a-=.1*dt;}
-    drawCoin(c);return c.x>-20&&c.a>0;
-  });
+  };
+  return portal(
+    <div style={{position:'fixed',bottom:'80px',left:'50%',transform:'translateX(-50%)',zIndex:9400,width:'360px',pointerEvents:'none'}}>
+      <div className="mi" style={{pointerEvents:'all',background:'#0d1117',border:'1px solid rgba(255,255,255,.12)',borderRadius:'14px',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.5)'}}>
+        <div style={{background:'linear-gradient(135deg,#1e3a8a,#4f73f5)',padding:'12px 16px',display:'flex',alignItems:'center',gap:'10px'}}>
+          <div style={{width:'28px',height:'28px',borderRadius:'8px',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{color:'#fff',fontSize:'12px',fontWeight:700,lineHeight:1}}>Invitación a proyecto</div>
+            <div style={{color:'rgba(255,255,255,.5)',fontSize:'10px',marginTop:'2px'}}>de {inv.fromName}</div>
+          </div>
+          {pending.length>1&&<span style={{background:'rgba(255,255,255,.15)',color:'#fff',fontSize:'10px',fontWeight:700,padding:'2px 7px',borderRadius:'99px'}}>{pending.length}</span>}
+        </div>
+        <div style={{padding:'14px 16px'}}>
+          <div style={{color:'rgba(255,255,255,.8)',fontSize:'13px',fontWeight:600,marginBottom:'3px'}}>{inv.projectName}</div>
+          <div style={{color:'rgba(255,255,255,.35)',fontSize:'11.5px',marginBottom:'14px'}}>Rol asignado: <span style={{color:'#60a5fa',fontWeight:600}}>{inv.collabRole||'Colaborador'}</span></div>
+          <div style={{display:'flex',gap:'8px'}}>
+            <button onClick={()=>respond(false)}
+              style={{flex:1,padding:'8px',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'7px',color:'rgba(255,255,255,.5)',fontSize:'12.5px',fontWeight:600,cursor:'pointer',transition:'all .13s'}}
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(239,68,68,.15)';e.currentTarget.style.color='#f87171';e.currentTarget.style.borderColor='rgba(239,68,68,.3)'}}
+              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.07)';e.currentTarget.style.color='rgba(255,255,255,.5)';e.currentTarget.style.borderColor='rgba(255,255,255,.1)'}}>
+              Rechazar
+            </button>
+            <button onClick={()=>respond(true)}
+              style={{flex:1,padding:'8px',background:'#4f73f5',border:'none',borderRadius:'7px',color:'#fff',fontSize:'12.5px',fontWeight:600,cursor:'pointer',transition:'background .13s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#3558e0'}
+              onMouseLeave={e=>e.currentTarget.style.background='#4f73f5'}>
+              Aceptar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-  /* draw Invy */
-  drawInvy(P.x,P.y,P.animF,P.sq,P.st,dead);
-  if(dead&&P.y<GROUND){P.vy+=.8*dt;P.y+=P.vy*dt;if(P.y>=GROUND){P.y=GROUND;P.vy=0;}}
+/* ─ PROJECT DETAIL — TrackingTime style, no auto-timer ─ */
+const ProjectDetail=({user,pid,project,onBack,allUsers})=>{
+  const[tasks,setTasks]=useState({});
+  const[costs,setCosts]=useState({});
+  const[collabs,setCollabs]=useState({});
+  const[tab,setTab]=useState('tasks');
+  const[showTask,setShowTask]=useState(false);
+  const[showCost,setShowCost]=useState(false);
+  const[showInvite,setShowInvite]=useState(false);
+  const[inviteUser,setInviteUser]=useState('');
+  const[inviteRole,setInviteRole]=useState('Colaborador');
+  const[editTask,setEditTask]=useState(null); // {tid, ...fields}
+  const[tName,setTName]=useState('');
+  const[tDesc,setTDesc]=useState('');
+  const[tSt,setTSt]=useState('Pendiente');
+  const[tEst,setTEst]=useState('');
+  const[cDesc,setCDesc]=useState('');
+  const[cAmt,setCAmt]=useState('');
+  const[cDate,setCDate]=useState('');
+  const collabArr=Object.entries(collabs);
+  const isCollab=collabArr.some(([,c])=>c.userId===user.id);
+  const canEdit=project.ownerId===user.id||isCollab;
+  const color=getColor(pid);
 
-  /* particles */
-  parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.28*dt;p.l-=.04*dt;
-    ctx.globalAlpha=Math.max(0,p.l);
-    ctx.beginPath();ctx.arc(p.x,p.y,p.s*(p.col?1:.65),0,Math.PI*2);
-    ctx.fillStyle=p.col||'rgba(190,205,255,.55)';ctx.fill();ctx.globalAlpha=1;
-  });
-  for(let i=parts.length-1;i>=0;i--)if(parts[i].l<=0)parts.splice(i,1);
+  useEffect(()=>{
+    const u1=window.FB.onTasks(pid,d=>setTasks(d||{}));
+    const u2=window.FB.onCosts(pid,d=>setCosts(d||{}));
+    const u3=window.FB.onCollabs(pid,d=>setCollabs(d||{}));
+    return()=>{u1();u2();u3()};
+  },[pid]);
 
-  /* float msgs */
-  msgs.forEach(m=>{m.y+=m.vy*dt;m.l-=.025*dt;
-    ctx.globalAlpha=Math.max(0,m.l);ctx.font='bold 13px DM Sans,sans-serif';
-    ctx.fillStyle='#7cc44f';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(m.t,m.x,m.y);ctx.globalAlpha=1;
-  });
-  for(let i=msgs.length-1;i>=0;i--)if(msgs[i].l<=0)msgs.splice(i,1);
+  const v=pct(tasks);
+  const taskArr=Object.entries(tasks);
+  const totalCost=Object.values(costs).reduce((s,c)=>s+(+c.amount||0),0);
 
-  /* hi score */
-  if(hiScore>0){ctx.font='11px DM Sans,sans-serif';ctx.fillStyle='rgba(240,246,255,.25)';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillText('MEJOR: '+hiScore,W-22,22);}
+  const addTask=async()=>{
+    if(!tName.trim())return;
+    await window.FB.addTask(pid,{name:tName.trim(),description:tDesc,status:tSt,timeEstimated:tEst,assignedTo:user.id,assignedName:user.name,timeSpent:0,createdAt:ts()});
+    setShowTask(false);setTName('');setTDesc('');setTSt('Pendiente');setTEst('');
+  };
 
-  /* game over */
-  if(dead){
-    ctx.fillStyle='rgba(8,12,20,.62)';ctx.fillRect(0,0,W,H);
-    ctx.font='bold 30px Syne,sans-serif';ctx.fillStyle='#f0f6ff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('¡Invy cayó! 😅',W/2,H*.39);
-    ctx.font='15px DM Sans,sans-serif';ctx.fillStyle='rgba(240,246,255,.45)';ctx.fillText('Puntuación: '+score+'  ·  Mejor: '+hiScore,W/2,H*.46);
-    ctx.font='12px DM Sans,sans-serif';ctx.fillStyle='rgba(90,158,58,.75)';
-    ctx.globalAlpha=.5+.38*Math.sin(frame*.08);ctx.fillText('Tap o Espacio para reintentar',W/2,H*.53);ctx.globalAlpha=1;
+  const changeStatus=async(tid,status)=>{
+    await window.FB.updTask(pid,tid,{status});
+    const updated={...tasks,[tid]:{...tasks[tid],status}};
+    await window.FB.updProject(pid,{progress:pct(updated)});
+  };
+
+  const removeTask=async tid=>{
+    if(!confirm('¿Eliminar tarea?'))return;
+    await window.FB.delTask(pid,tid);
+    const updated={...tasks};delete updated[tid];
+    await window.FB.updProject(pid,{progress:pct(updated)});
+  };
+
+  const openEditTask=(tid,t)=>{
+    setEditTask({tid,name:t.name,description:t.description||'',status:t.status||'Pendiente',timeEstimated:t.timeEstimated||''});
+  };
+
+  const saveEditTask=async()=>{
+    if(!editTask.name.trim())return;
+    await window.FB.updTask(pid,editTask.tid,{name:editTask.name.trim(),description:editTask.description,status:editTask.status,timeEstimated:editTask.timeEstimated});
+    const updated={...tasks,[editTask.tid]:{...tasks[editTask.tid],...editTask}};
+    await window.FB.updProject(pid,{progress:pct(updated)});
+    setEditTask(null);
+  };
+
+  const sendInvite=async(allUsers)=>{
+    if(!inviteUser)return;
+    const toUser=Object.values(allUsers).find(u=>u.id===inviteUser);
+    if(!toUser)return;
+    await window.FB.addInvite({projectId:pid,projectName:project.name,fromId:user.id,fromName:user.name,toUserId:toUser.id,toUserName:toUser.name,collabRole:inviteRole,status:'pending',createdAt:ts()});
+    setShowInvite(false);setInviteUser('');setInviteRole('Colaborador');
+  };
+
+  const kickCollab=async(cid)=>{
+    if(!confirm('¿Quitar colaborador del proyecto?'))return;
+    await window.FB.delCollab(pid,cid);
+  };
+
+  const assignTaskToCollab=(tid,uid,uname)=>{
+    window.FB.updTask(pid,tid,{assignedTo:uid,assignedName:uname});
+  };
+
+  const addCost=async()=>{
+    if(!cDesc.trim()||!cAmt)return;
+    await window.FB.addCost(pid,{description:cDesc.trim(),amount:cAmt,date:cDate,createdAt:ts()});
+    setShowCost(false);setCDesc('');setCAmt('');setCDate('');
+  };
+
+  /* task status colors — TrackingTime style */
+  const TSC={
+    'Pendiente'  :{bg:'#f3f4f6',color:'#6b7280',border:'#e5e7eb'},
+    'En progreso':{bg:'#eef1fe',color:'#4f73f5',border:'#c7d2fd'},
+    'Completado' :{bg:'#dcfce7',color:'#16a34a',border:'#bbf7d0'},
+  };
+
+  return(
+    <div className="fi">
+      {/* breadcrumb */}
+      <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'20px'}}>
+        <button onClick={onBack}
+          style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'13px',color:'#6b7280',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',fontWeight:500}}
+          onMouseEnter={e=>e.currentTarget.style.color='#1a1d23'} onMouseLeave={e=>e.currentTarget.style.color='#6b7280'}>
+          ← Proyectos
+        </button>
+        <span style={{color:'#d1d5db'}}>/</span>
+        <span style={{fontSize:'13px',color:'#1a1d23',fontWeight:500}}>{project.name}</span>
+      </div>
+
+      {/* header card */}
+      <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',marginBottom:'20px',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}>
+        <div style={{height:'5px',background:color}}/>
+        <div style={{padding:'20px 24px'}}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'12px'}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:'20px',color:'#1a1d23',marginBottom:'4px'}}>{project.name}</div>
+              {project.description&&<div style={{fontSize:'13px',color:'#9ca3af'}}>{project.description}</div>}
+            </div>
+            <div style={{display:'flex',gap:'8px',alignItems:'center',flexShrink:0}}>
+              <Tag s={project.status}/>
+              {canEdit&&(
+                <select value={project.status} onChange={e=>window.FB.updProject(pid,{status:e.target.value})}
+                  style={{...iSt,width:'auto',fontSize:'12px',padding:'5px 10px',cursor:'pointer'}}>
+                  {['Activo','En progreso','Pausado','Finalizado','Bloqueado'].map(s=><option key={s}>{s}</option>)}
+                </select>
+              )}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:'16px',fontSize:'12px',color:'#9ca3af',marginBottom:'16px',flexWrap:'wrap'}}>
+            <span>👤 {project.ownerName}</span>
+            {project.startDate&&<span>📅 {dFmt(project.startDate)}</span>}
+            {project.endDate&&<span>🏁 {dFmt(project.endDate)}</span>}
+            <span>📋 {taskArr.length} tareas</span>
+          </div>
+          {/* progress bar */}
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',marginBottom:'6px'}}>
+              <span style={{color:'#6b7280',fontWeight:500}}>Progreso general</span>
+              <span style={{fontWeight:700,color:v===100?'#22c55e':color}}>{v}%</span>
+            </div>
+            <div style={{height:'8px',background:'#f3f4f6',borderRadius:'99px',overflow:'hidden'}}>
+              <div style={{height:'100%',width:v+'%',background:v===100?'#22c55e':color,borderRadius:'99px',transition:'width .5s'}}/>
+            </div>
+          </div>
+          {/* mini stats */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',marginTop:'16px'}}>
+            {[['Pendiente','#9ca3af',taskArr.filter(([,t])=>t.status==='Pendiente').length],
+              ['En progreso','#4f73f5',taskArr.filter(([,t])=>t.status==='En progreso').length],
+              ['Completado','#22c55e',taskArr.filter(([,t])=>t.status==='Completado').length]
+            ].map(([s,col,n])=>(
+              <div key={s} style={{background:'#f7f8fa',borderRadius:'8px',padding:'10px 14px',textAlign:'center'}}>
+                <div style={{fontSize:'22px',fontWeight:700,color:col,marginBottom:'2px'}}>{n}</div>
+                <div style={{fontSize:'11px',color:'#9ca3af'}}>{s}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* tabs */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #e8eaed',marginBottom:'16px'}}>
+        <div style={{display:'flex'}}>
+          {[['tasks','Tareas'],['costs','Costes'],['collabs','Equipo']].map(([id,lbl])=>(
+            <button key={id} onClick={()=>setTab(id)}
+              style={{padding:'9px 16px',fontSize:'13px',fontWeight:600,border:'none',borderBottom:`2px solid ${tab===id?color:'transparent'}`,marginBottom:'-1px',color:tab===id?color:'#9ca3af',background:'transparent',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+              {lbl}
+              {id==='tasks'?<span style={{marginLeft:'5px',fontSize:'11px',background:tab==='tasks'?color:'#f3f4f6',color:tab==='tasks'?'#fff':'#9ca3af',borderRadius:'99px',padding:'1px 6px'}}>{taskArr.length}</span>:''}
+              {id==='costs'&&totalCost>0?<span style={{marginLeft:'5px',fontSize:'11px',color:'#9ca3af'}}>${Math.round(totalCost)}</span>:''}
+              {id==='collabs'?<span style={{marginLeft:'5px',fontSize:'11px',background:tab==='collabs'?color:'#f3f4f6',color:tab==='collabs'?'#fff':'#9ca3af',borderRadius:'99px',padding:'1px 6px'}}>{collabArr.length+1}</span>:''}
+            </button>
+          ))}
+        </div>
+        <div style={{paddingBottom:'8px',display:'flex',gap:'6px'}}>
+          {tab==='tasks'&&canEdit&&<Btn sm onClick={()=>setShowTask(true)}>+ Tarea</Btn>}
+          {tab==='costs'&&canEdit&&<Btn sm onClick={()=>setShowCost(true)}>+ Coste</Btn>}
+          {tab==='collabs'&&project.ownerId===user.id&&<Btn sm onClick={()=>setShowInvite(true)}>+ Invitar</Btn>}
+        </div>
+      </div>
+
+      {/* TASKS */}
+      {tab==='tasks'&&(taskArr.length===0
+        ?<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'48px',textAlign:'center'}}>
+          <div style={{fontSize:'32px',marginBottom:'10px'}}>✅</div>
+          <div style={{fontWeight:600,color:'#1a1d23',marginBottom:'4px'}}>Sin tareas</div>
+          <div style={{fontSize:'13px',color:'#9ca3af'}}>{canEdit?'Añade la primera tarea.':'No hay tareas.'}</div>
+        </div>
+        :<div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+          {taskArr.map(([tid,t])=>{
+            const sc=TSC[t.status]||TSC['Pendiente'];
+            return(
+              <div key={tid}
+                style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'14px 16px',boxShadow:'0 1px 2px rgba(0,0,0,.04)',transition:'box-shadow .15s'}}
+                onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow='0 1px 2px rgba(0,0,0,.04)'}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'10px',marginBottom:'8px'}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,color:'#1a1d23',fontSize:'14px',marginBottom:'3px'}}>{t.name}</div>
+                    {t.description&&<div style={{fontSize:'12px',color:'#9ca3af',lineHeight:1.5}}>{t.description}</div>}
+                  </div>
+                  {/* status badge */}
+                  <span style={{flexShrink:0,padding:'3px 10px',borderRadius:'99px',fontSize:'11px',fontWeight:600,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`}}>{t.status}</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'8px'}}>
+                  <div style={{display:'flex',gap:'14px',fontSize:'12px',color:'#9ca3af'}}>
+                    {t.timeEstimated&&<span>⏱ Est. <b style={{color:'#6b7280'}}>{t.timeEstimated}h</b></span>}
+                    {t.assignedName&&<span>👤 {t.assignedName}</span>}
+                  </div>
+                  {canEdit&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                      {/* status quick-change */}
+                      {['Pendiente','En progreso','Completado'].map(s=>{
+                        const sc2=TSC[s];
+                        const active=t.status===s;
+                        return(
+                          <button key={s} onClick={()=>changeStatus(tid,s)}
+                            style={{padding:'3px 8px',borderRadius:'99px',border:`1px solid ${active?sc2.border:'#e8eaed'}`,background:active?sc2.bg:'transparent',color:active?sc2.color:'#9ca3af',fontSize:'11px',fontWeight:600,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                            {s==='Pendiente'?'Pendiente':s==='En progreso'?'En progreso':'✓ Listo'}
+                          </button>
+                        );
+                      })}
+                      <button onClick={()=>openEditTask(tid,t)}
+                        title="Editar tarea"
+                        style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#9ca3af',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',marginLeft:'4px',transition:'all .15s'}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#a5b4fc';e.currentTarget.style.color='#4f73f5';e.currentTarget.style.background='#eef1fe'}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='transparent'}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button onClick={()=>removeTask(tid)}
+                        style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontFamily:'inherit',marginLeft:'2px',transition:'all .15s'}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db';e.currentTarget.style.background='transparent'}}>×</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* COSTS */}
+      {tab==='costs'&&(
+        <>
+          {Object.keys(costs).length>0&&(
+            <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'16px 20px',marginBottom:'12px',display:'flex',alignItems:'center',gap:'10px'}}>
+              <span style={{fontSize:'13px',color:'#9ca3af',fontWeight:500}}>Total costes</span>
+              <span style={{fontWeight:700,fontSize:'24px',color:'#1a1d23'}}>${totalCost.toFixed(2)}</span>
+            </div>
+          )}
+          {Object.keys(costs).length===0
+            ?<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'48px',textAlign:'center'}}>
+              <div style={{fontSize:'32px',marginBottom:'10px'}}>💰</div>
+              <div style={{fontWeight:600,color:'#1a1d23',marginBottom:'4px'}}>Sin costes</div>
+              <div style={{fontSize:'13px',color:'#9ca3af'}}>{canEdit?'Registra costes externos.':'No hay costes.'}</div>
+            </div>
+            :<div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+              {Object.entries(costs).map(([cid,co])=>(
+                <div key={cid} style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{fontWeight:600,color:'#1a1d23',fontSize:'14px'}}>{co.description}</div>
+                    <div style={{fontSize:'12px',color:'#9ca3af',marginTop:'2px'}}>{dFmt(co.date)}</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <span style={{fontWeight:700,fontSize:'18px',color:'#1a1d23'}}>${(+co.amount).toFixed(2)}</span>
+                    {canEdit&&<button onClick={()=>window.FB.delCost(pid,cid)}
+                      style={{width:'24px',height:'24px',borderRadius:'50%',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontFamily:'inherit'}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444'}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db'}}>×</button>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          }
+        </>
+      )}
+
+      {/* COLLABORATORS TAB */}
+      {tab==='collabs'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+          {/* owner row */}
+          <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
+            <div style={{width:'34px',height:'34px',borderRadius:'50%',background:'linear-gradient(135deg,#4f73f5,#7c9bff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'#fff',flexShrink:0}}>{project.ownerName?.[0]?.toUpperCase()}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:600,fontSize:'13px',color:'#1a1d23'}}>{project.ownerName}</div>
+              <div style={{fontSize:'11px',color:'#9ca3af',marginTop:'1px'}}>Creador del proyecto</div>
+            </div>
+            <span style={{fontSize:'11px',fontWeight:600,color:'#4f73f5',background:'#eef1fe',border:'1px solid #c7d2fd',borderRadius:'99px',padding:'3px 10px'}}>Propietario</span>
+          </div>
+          {/* collab rows */}
+          {collabArr.map(([cid,c])=>(
+            <div key={cid} style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
+              <div style={{width:'34px',height:'34px',borderRadius:'50%',background:'#f3f4f6',border:'1px solid #e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'#6b7280',flexShrink:0}}>{c.userName?.[0]?.toUpperCase()}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:'13px',color:'#1a1d23'}}>{c.userName}</div>
+                <div style={{fontSize:'11px',color:'#9ca3af',marginTop:'1px'}}>Unido {dFmt(c.joinedAt)}</div>
+              </div>
+              <span style={{fontSize:'11px',fontWeight:600,color:'#16a34a',background:'#dcfce7',border:'1px solid #bbf7d0',borderRadius:'99px',padding:'3px 10px'}}>{c.role||'Colaborador'}</span>
+              {project.ownerId===user.id&&(
+                <button onClick={()=>kickCollab(cid)}
+                  style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',flexShrink:0}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db';e.currentTarget.style.background='transparent'}}>×</button>
+              )}
+            </div>
+          ))}
+          {collabArr.length===0&&(
+            <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',padding:'36px',textAlign:'center'}}>
+              <div style={{color:'#9ca3af',fontSize:'13px'}}>{project.ownerId===user.id?'Sin colaboradores aún. Pulsa "+ Invitar" para añadir.':'No hay colaboradores en este proyecto.'}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* EDIT TASK MODAL */}
+      {editTask&&(
+        <Modal title="Editar tarea" onClose={()=>setEditTask(null)}>
+          <In label="Nombre *" value={editTask.name} onChange={e=>setEditTask(p=>({...p,name:e.target.value}))} placeholder="Nombre de la tarea" autoFocus/>
+          <Ta label="Descripción" value={editTask.description} onChange={e=>setEditTask(p=>({...p,description:e.target.value}))} placeholder="Descripción opcional"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Tiempo estimado (h)" type="number" value={editTask.timeEstimated} onChange={e=>setEditTask(p=>({...p,timeEstimated:e.target.value}))} placeholder="0"/>
+            <Se label="Estado" value={editTask.status} onChange={e=>setEditTask(p=>({...p,status:e.target.value}))} opts={['Pendiente','En progreso','Completado']}/>
+          </div>
+          <Field label="Asignado a">
+            <select value={editTask.assignedTo||''} onChange={e=>{const u=[{id:user.id,name:user.name},...collabArr.map(([,c])=>({id:c.userId,name:c.userName}))].find(x=>x.id===e.target.value);setEditTask(p=>({...p,assignedTo:e.target.value,assignedName:u?.name||''}))}} style={{...iSt,cursor:'pointer'}}>
+              <option value={user.id}>{user.name} (tú)</option>
+              {collabArr.map(([,c])=><option key={c.userId} value={c.userId}>{c.userName} · {c.role}</option>)}
+            </select>
+          </Field>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setEditTask(null)}>Cancelar</Btn>
+            <Btn full onClick={saveEditTask} dis={!editTask.name.trim()}>Guardar cambios</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* INVITE MODAL */}
+      {showInvite&&(
+        <Modal title="Invitar colaborador" sub="El usuario recibirá una notificación para aceptar o rechazar." onClose={()=>setShowInvite(false)}>
+          <Field label="Usuario">
+            <select value={inviteUser} onChange={e=>setInviteUser(e.target.value)} style={{...iSt,cursor:'pointer'}}>
+              <option value="">— Seleccionar empleado —</option>
+              {Object.values(allUsers||{}).filter(u=>u.id!==user.id&&u.role==='empleado'&&!collabArr.some(([,c])=>c.userId===u.id)).map(u=>(
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Se label="Rol en el proyecto" value={inviteRole} onChange={e=>setInviteRole(e.target.value)} opts={['Colaborador','Desarrollador','Diseñador','QA','Analista','Supervisor']}/>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setShowInvite(false)}>Cancelar</Btn>
+            <Btn full onClick={()=>sendInvite(allUsers)} dis={!inviteUser}>Enviar invitación</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* TASK MODAL */}
+      {showTask&&(
+        <Modal title="Nueva tarea" onClose={()=>setShowTask(false)}>
+          <In label="Nombre *" value={tName} onChange={e=>setTName(e.target.value)} placeholder="Nombre de la tarea" autoFocus/>
+          <Ta label="Descripción" value={tDesc} onChange={e=>setTDesc(e.target.value)} placeholder="Descripción opcional"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Tiempo estimado (h)" type="number" value={tEst} onChange={e=>setTEst(e.target.value)} placeholder="0"/>
+            <Se label="Estado inicial" value={tSt} onChange={e=>setTSt(e.target.value)} opts={['Pendiente','En progreso','Completado']}/>
+          </div>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setShowTask(false)}>Cancelar</Btn>
+            <Btn full onClick={addTask} dis={!tName.trim()}>Guardar tarea</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* COST MODAL */}
+      {showCost&&(
+        <Modal title="Añadir coste externo" onClose={()=>setShowCost(false)}>
+          <Ta label="Concepto *" value={cDesc} onChange={e=>setCDesc(e.target.value)} placeholder="Ej. Consultor, dominio, API…"/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Importe ($) *" type="number" value={cAmt} onChange={e=>setCAmt(e.target.value)} placeholder="0.00"/>
+            <In label="Fecha" type="date" value={cDate} onChange={e=>setCDate(e.target.value)}/>
+          </div>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setShowCost(false)}>Cancelar</Btn>
+            <Btn full onClick={addCost} dis={!cDesc.trim()||!cAmt}>Añadir</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+/* ─ PROJECTS PAGE wrapper ─ */
+const Projects=({user,projects,allTasks,openProj,setOpenProj,allUsers,allCollabs})=>{
+  if(openProj) return <ProjectDetail user={user} pid={openProj.id} project={openProj.data} onBack={()=>setOpenProj(null)} allUsers={allUsers}/>;
+  return <ProjectsList user={user} projects={projects} allTasks={allTasks} openProject={(pid,p)=>setOpenProj({id:pid,data:p})} allCollabs={allCollabs}/>;
+};
+
+/* ─ REPORTS ─ */
+const Reports=({user,projects,reports})=>{
+  const[show,setShow]=useState(false);
+  const[sel,setSel]=useState(null);
+  const[comments,setComments]=useState({});
+  const[cmtTxt,setCmtTxt]=useState('');
+  /* form */
+  const[fDate,setFDate]=useState(new Date().toISOString().slice(0,10));
+  const[fPid,setFPid]=useState('');
+  const[fH,setFH]=useState('');
+  const[fTasks,setFTasks]=useState('');
+  const[fProb,setFProb]=useState('');
+  const[fNotes,setFNotes]=useState('');
+
+  const admin=user.role==='admin'||user.role==='gerencia';
+  const list=Object.entries(reports||{}).filter(([,r])=>admin||r.userId===user.id).sort((a,b)=>new Date(b[1].createdAt||0)-new Date(a[1].createdAt||0));
+
+  useEffect(()=>{
+    if(!sel)return;
+    return window.FB.onComments(sel[0],d=>setComments(d||{}));
+  },[sel]);
+
+  const create=async()=>{
+    if(!fDate)return;
+    await window.FB.addReport({date:fDate,projectId:fPid,projectName:projects[fPid]?.name||'',hoursWorked:fH,tasks:fTasks,problems:fProb,notes:fNotes,userId:user.id,userName:user.name,createdAt:ts()});
+    setShow(false);setFDate(new Date().toISOString().slice(0,10));setFPid('');setFH('');setFTasks('');setFProb('');setFNotes('');
+  };
+
+  const sendCmt=async()=>{
+    if(!cmtTxt.trim()||!sel)return;
+    await window.FB.addComment(sel[0],{userId:user.id,userName:user.name,text:cmtTxt.trim(),createdAt:ts()});
+    setCmtTxt('');
+  };
+
+  return(
+    <div className="fi">
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'24px',paddingBottom:'22px',borderBottom:'1px solid #e4e4e0'}}>
+        <div>
+          <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Reportes</div>
+          <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>{list.length} reporte{list.length!==1?'s':''}</div>
+        </div>
+        {!admin&&<Btn onClick={()=>setShow(true)}>+ Nuevo reporte</Btn>}
+      </div>
+
+      {list.length===0
+        ?<div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'64px',textAlign:'center'}}>
+          <div className="g" style={{fontSize:'22px',color:'#bbb',marginBottom:'8px'}}>Sin reportes</div>
+          {!admin&&<Btn onClick={()=>setShow(true)}>Crear reporte</Btn>}
+        </div>
+        :<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+          {list.map(([rid,r],i)=>(
+            <div key={rid} onClick={()=>setSel([rid,r])}
+              style={{padding:'13px 18px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff',cursor:'pointer',transition:'background .1s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#fafaf8'}
+              onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px'}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap',marginBottom:'3px'}}>
+                    <span style={{fontWeight:500,color:'#111'}}>{r.userName}</span>
+                    <span style={{fontSize:'12px',color:'#888'}}>{dFmt(r.date)}</span>
+                    {r.projectName&&<span style={{fontSize:'12px',color:'#aaa'}}>· {r.projectName}</span>}
+                  </div>
+                  {r.tasks&&<div style={{fontSize:'12px',color:'#888',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{r.tasks}</div>}
+                  {r.problems&&<div style={{fontSize:'12px',color:'#e74c3c',marginTop:'2px'}}>⚠ {r.problems}</div>}
+                </div>
+                <div className="g" style={{fontSize:'22px',fontWeight:500,flexShrink:0}}>{r.hoursWorked||0}h</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      }
+
+      {/* detail modal */}
+      {sel&&(
+        <Modal title={sel[1].userName} sub={dFmt(sel[1].date)+(sel[1].projectName?' · '+sel[1].projectName:'')} onClose={()=>setSel(null)} wide>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'8px',overflow:'hidden',marginBottom:'18px'}}>
+            {[['Horas',`${sel[1].hoursWorked||0}h`],['Proyecto',sel[1].projectName||'—']].map(([l,v])=>(
+              <div key={l} style={{background:'#f4f4f2',padding:'12px 16px'}}>
+                <div style={{fontSize:'10px',color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>{l}</div>
+                <div className="g" style={{fontSize:'22px',fontWeight:500}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {sel[1].tasks&&<div style={{marginBottom:'14px'}}><div style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Tareas realizadas</div><div style={{fontSize:'13px',color:'#111',lineHeight:1.6,borderLeft:'2px solid #e4e4e0',paddingLeft:'12px'}}>{sel[1].tasks}</div></div>}
+          {sel[1].problems&&<div style={{marginBottom:'14px',padding:'12px',border:'1px solid #fecaca',borderRadius:'8px',background:'#fef2f2'}}><div style={{fontSize:'10px',fontWeight:600,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'4px'}}>Problemas</div><div style={{fontSize:'13px',color:'#b91c1c'}}>{sel[1].problems}</div></div>}
+          {sel[1].notes&&<div style={{marginBottom:'14px',padding:'12px',border:'1px solid #e4e4e0',borderRadius:'8px',background:'#f4f4f2'}}><div style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'4px'}}>Notas</div><div style={{fontSize:'13px',color:'#111'}}>{sel[1].notes}</div></div>}
+          <div style={{borderTop:'1px solid #e4e4e0',paddingTop:'14px',marginTop:'4px'}}>
+            <div style={{fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'10px'}}>Comentarios</div>
+            <div style={{maxHeight:'140px',overflowY:'auto',marginBottom:'10px',display:'flex',flexDirection:'column',gap:'8px'}}>
+              {Object.values(comments).length===0&&<div style={{fontSize:'12px',color:'#ccc'}}>Sin comentarios aún.</div>}
+              {Object.values(comments).map((c,i)=>(
+                <div key={i} style={{display:'flex',gap:'8px'}}>
+                  <div style={{width:'22px',height:'22px',borderRadius:'50%',background:'#f4f4f2',border:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:600,color:'#888',flexShrink:0}}>{c.userName[0]}</div>
+                  <div>
+                    <div style={{fontSize:'12px',fontWeight:500,color:'#111'}}>{c.userName} <span style={{color:'#ccc',fontWeight:400}}>{tFmt(c.createdAt)}</span></div>
+                    <div style={{fontSize:'13px',color:'#111',marginTop:'1px'}}>{c.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(user.role==='admin'||user.role==='gerencia')&&<div style={{display:'flex',gap:'8px'}}>
+              <input style={{...iSt,flex:1}} placeholder="Añadir comentario…" value={cmtTxt} onChange={e=>setCmtTxt(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendCmt()}/>
+              <Btn sm onClick={sendCmt} dis={!cmtTxt.trim()}>Enviar</Btn>
+            </div>}
+          </div>
+        </Modal>
+      )}
+
+      {/* create modal */}
+      {show&&(
+        <Modal title="Nuevo reporte diario" onClose={()=>setShow(false)} wide>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Fecha *" type="date" value={fDate} onChange={e=>setFDate(e.target.value)}/>
+            <Field label="Proyecto">
+              <select style={{...iSt,cursor:'pointer',appearance:'none'}} value={fPid} onChange={e=>setFPid(e.target.value)}>
+                <option value="">— Sin proyecto —</option>
+                {Object.entries(projects).filter(([,p])=>p.ownerId===user.id).map(([pid,p])=>(
+                  <option key={pid} value={pid}>{p.name}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <In label="Horas trabajadas" type="number" value={fH} onChange={e=>setFH(e.target.value)} placeholder="0"/>
+          <Ta label="Tareas realizadas hoy" value={fTasks} onChange={e=>setFTasks(e.target.value)} placeholder="Describe el trabajo completado…"/>
+          <Ta label="Problemas encontrados" value={fProb} onChange={e=>setFProb(e.target.value)} placeholder="Errores, bloqueos, obstáculos…"/>
+          <Ta label="Notas" value={fNotes} onChange={e=>setFNotes(e.target.value)} placeholder="Ideas, aprendizajes, próximos pasos…"/>
+          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+            <Btn v="g" full onClick={()=>setShow(false)}>Cancelar</Btn>
+            <Btn full onClick={create}>Enviar reporte</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+/* ─ TEAM ─ */
+const Team=({user,projects,allTasks})=>{
+  const others=Object.entries(projects).filter(([,p])=>p.ownerId!==user.id);
+  return(
+    <div className="fi">
+      <div style={{marginBottom:'24px'}}>
+        <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Equipo</div>
+        <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>Vista general sin acceso a tareas, tiempos ni costes de otros.</div>
+      </div>
+      {others.length===0
+        ?<div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'48px',textAlign:'center',fontSize:'13px',color:'#888'}}>Ningún compañero tiene proyectos activos aún.</div>
+        :<div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+          {others.map(([pid,p],i)=>{
+            const v=pct(allTasks[pid]||{});
+            return(
+              <div key={pid} style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 18px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:500,color:'#111'}}>{p.name}</div>
+                  <div style={{fontSize:'12px',color:'#888',marginTop:'1px'}}>{p.ownerName}</div>
+                </div>
+                <div style={{width:'88px'}}>
+                  <Bar v={v}/>
+                  <div style={{fontSize:'11px',color:'#888',fontFamily:'monospace',textAlign:'right',marginTop:'2px'}}>{v}%</div>
+                </div>
+                <Tag s={p.status}/>
+              </div>
+            );
+          })}
+        </div>
+      }
+    </div>
+  );
+};
+
+/* ─ OVERVIEW ─ */
+const Overview=({projects,allTasks,reports,users,onExport})=>{
+  const cD=useRef(null),cB=useRef(null),iD=useRef(null),iB=useRef(null);
+  const pa=Object.entries(projects);
+  const avg=pa.length?Math.round(pa.reduce((s,[pid])=>s+pct(allTasks[pid]||{}),0)/pa.length):0;
+  const today=new Date().toDateString();
+
+  useEffect(()=>{
+    if(!cD.current)return;
+    if(iD.current)iD.current.destroy();
+    const sts=['Activo','En progreso','Pausado','Finalizado','Bloqueado'];
+    iD.current=new Chart(cD.current,{type:'doughnut',data:{labels:sts,datasets:[{data:sts.map(s=>pa.filter(([,p])=>p.status===s).length),backgroundColor:['#111','#444','#888','#2a7a4b','#e74c3c'],borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'DM Sans'},padding:10,color:'#888'}}}}});
+  },[projects]);
+
+  useEffect(()=>{
+    if(!cB.current||!pa.length)return;
+    if(iB.current)iB.current.destroy();
+    const data=pa.map(([pid])=>pct(allTasks[pid]||{}));
+    iB.current=new Chart(cB.current,{type:'bar',data:{labels:pa.map(([,p])=>p.name.length>22?p.name.slice(0,22)+'…':p.name),datasets:[{data,backgroundColor:data.map(v=>v===100?'#2a7a4b':'#111'),borderRadius:2,barThickness:13}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:10},color:'#ccc'},grid:{color:'#f4f4f2'}},y:{grid:{display:false},ticks:{font:{size:10},color:'#888'}}}}});
+  },[projects,allTasks]);
+
+  const kpis=[
+    {n:pa.length,l:'Proyectos'},
+    {n:avg+'%',l:'Avance promedio'},
+    {n:Object.values(users||{}).filter(u=>u.role==='empleado').length,l:'Empleados'},
+    {n:Object.values(reports||{}).filter(r=>new Date(r.date).toDateString()===today).length,l:'Reportes hoy'},
+  ];
+
+  return(
+    <div className="fi">
+      <div style={{marginBottom:'24px',paddingBottom:'22px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'16px',flexWrap:'wrap'}}>
+        <div>
+          <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Dashboard</div>
+          <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>Visibilidad completa del equipo en tiempo real.</div>
+        </div>
+        <button onClick={()=>onExport()} data-export-btn="1"
+          style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',background:'#fff',border:'1.5px solid #e4e4e0',borderRadius:'8px',fontSize:'13px',fontWeight:600,color:'#1a1d23',cursor:'pointer',fontFamily:'inherit',transition:'all .16s',letterSpacing:'-.01em'}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='#2D8A58';e.currentTarget.style.color='#2D8A58';e.currentTarget.style.background='#f0fdf4'}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='#e4e4e0';e.currentTarget.style.color='#1a1d23';e.currentTarget.style.background='#fff'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar Excel
+        </button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'1px',background:'#e4e4e0',border:'1px solid #e4e4e0',borderRadius:'10px',overflow:'hidden',marginBottom:'20px'}}>
+        {kpis.map((k,i)=>(
+          <div key={i} style={{background:'#fff',padding:'18px 22px',borderRadius:'10px',border:'1px solid #e8eaed',boxShadow:'0 1px 3px rgba(0,0,0,.05)'}}>
+            <div className="g" style={{fontSize:'34px',fontWeight:500,color:'#111',marginBottom:'3px'}}>{k.n}</div>
+            <div style={{fontSize:'12px',color:'#888'}}>{k.l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'5fr 8fr',gap:'14px',marginBottom:'20px'}}>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'18px',background:'#fff'}}>
+          <div className="g" style={{fontSize:'17px',fontWeight:500,marginBottom:'3px'}}>Por estado</div>
+          <div style={{fontSize:'12px',color:'#888',marginBottom:'14px'}}>Distribución</div>
+          <div style={{height:'170px'}}><canvas ref={cD}/></div>
+        </div>
+        <div style={{border:'1px solid #e4e4e0',borderRadius:'10px',padding:'18px',background:'#fff'}}>
+          <div className="g" style={{fontSize:'17px',fontWeight:500,marginBottom:'3px'}}>Avance</div>
+          <div style={{fontSize:'12px',color:'#888',marginBottom:'14px'}}>Verde = 100%</div>
+          <div style={{height:Math.max(pa.length*26+16,70)}}><canvas ref={cB}/></div>
+        </div>
+      </div>
+      <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+        <div style={{padding:'10px 18px',background:'#f4f4f2',borderBottom:'1px solid #e4e4e0',fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px'}}>Todos los proyectos</div>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead><tr style={{borderBottom:'1px solid #e4e4e0'}}>
+            {['Proyecto','Responsable','Estado','Avance','Tareas'].map(h=><th key={h} style={{padding:'9px 18px',textAlign:'left',fontSize:'10px',fontWeight:600,color:'#888',textTransform:'uppercase',letterSpacing:'1.5px'}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {pa.length===0&&<tr><td colSpan={5} style={{padding:'32px',textAlign:'center',fontSize:'13px',color:'#888'}}>Sin proyectos.</td></tr>}
+            {pa.map(([pid,p],i)=>{
+              const tasks=allTasks[pid]||{};const v=pct(tasks);
+              const done=Object.values(tasks).filter(t=>t.status==='Completado').length;
+              return(
+                <tr key={pid} style={{borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+                  <td style={{padding:'11px 18px',fontWeight:500,color:'#111',fontSize:'13px'}}>{p.name}</td>
+                  <td style={{padding:'11px 18px',fontSize:'12px',color:'#888'}}>{p.ownerName}</td>
+                  <td style={{padding:'11px 18px'}}><Tag s={p.status}/></td>
+                  <td style={{padding:'11px 18px'}}>
+                    <div style={{width:'72px',marginBottom:'2px'}}><Bar v={v}/></div>
+                    <span style={{fontSize:'11px',color:'#888',fontFamily:'monospace'}}>{v}%</span>
+                  </td>
+                  <td style={{padding:'11px 18px',fontSize:'12px',color:'#888',fontFamily:'monospace'}}>{done}/{Object.keys(tasks).length}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/* ─ USERS ─ */
+const Users=({users,projects,allTasks,allCollabs})=>{
+  const[view,setView]=useState('list');
+  const[deptFilter,setDeptFilter]=useState('all');
+  const all=[ADMIN,...Object.values(users)];
+  const roles={admin:'Admin',gerencia:'Gerencia',empleado:'Empleado'};
+  const roleColor={admin:'#ef4444',gerencia:'#f97316',empleado:'#22c55e'};
+  const deptColor={it:'#0369a1',consultoria:'#7c3aed'};
+  const deptLabel={it:'💻 IT',consultoria:'📊 Consultoría'};
+
+  const buildTree=()=>{
+    return all.map(u=>{
+      const owned=Object.entries(projects||{}).filter(([,p])=>p.ownerId===u.id);
+      const asCollab=Object.entries(allCollabs||{}).flatMap(([pid,cols])=>
+        Object.values(cols||{}).filter(c=>c.userId===u.id).map(c=>({pid,role:c.role,pName:(projects||{})[pid]?.name||'—',pDept:(projects||{})[pid]?.department||'it'}))
+      );
+      const myTasks=Object.entries(allTasks||{}).flatMap(([pid,tmap])=>
+        Object.entries(tmap||{}).filter(([,t])=>t.assignedTo===u.id).map(([tid,t])=>({tid,name:t.name,status:t.status,pid}))
+      );
+      return {u, owned, asCollab, myTasks};
+    });
+  };
+
+  const tree=buildTree();
+  const statusDot={'Completado':'#22c55e','En progreso':'#4f73f5','Pendiente':'#9ca3af'};
+
+  const filteredTree=deptFilter==='all'?tree:tree.filter(({u})=>(u.department||'it')===deptFilter||u.role==='admin');
+  const filteredList=deptFilter==='all'?all:all.filter(u=>(u.department||'it')===deptFilter||u.role==='admin');
+
+  const deptStats={
+    it:  {count:all.filter(u=>u.department==='it'&&u.id!=='_admin').length,  projects:Object.values(projects||{}).filter(p=>p.department==='it').length},
+    consultoria:{count:all.filter(u=>u.department==='consultoria').length, projects:Object.values(projects||{}).filter(p=>p.department==='consultoria').length},
+  };
+
+  return(
+    <div className="fi">
+      <div style={{marginBottom:'24px',paddingBottom:'18px',borderBottom:'1px solid #e4e4e0',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:'12px'}}>
+        <div>
+          <div className="g" style={{fontSize:'36px',fontWeight:500,color:'#111'}}>Usuarios</div>
+          <div style={{fontSize:'13px',color:'#888',marginTop:'3px'}}>{all.length} usuario{all.length!==1?'s':''} en el sistema</div>
+        </div>
+        <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+          {[['list','Lista'],['tree','Diagrama']].map(([v,lbl])=>(
+            <button key={v} onClick={()=>setView(v)}
+              style={{padding:'7px 14px',fontSize:'12.5px',fontWeight:600,borderRadius:'7px',border:`1.5px solid ${view===v?'#1a1d23':'#e4e4e0'}`,background:view===v?'#1a1d23':'#fff',color:view===v?'#fff':'#888',cursor:'pointer',fontFamily:'inherit',transition:'all .13s'}}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* dept summary cards */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'16px'}}>
+        {[['it','#0369a1','#f0f9ff','#bae6fd','💻'],['consultoria','#7c3aed','#f5f3ff','#ddd6fe','📊']].map(([d,col,bg,border,icon])=>(
+          <div key={d} onClick={()=>setDeptFilter(deptFilter===d?'all':d)}
+            style={{background:deptFilter===d?bg:'#fff',border:`1.5px solid ${deptFilter===d?col:border}`,borderRadius:'10px',padding:'14px 18px',cursor:'pointer',transition:'all .15s'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+              <span style={{fontSize:'16px'}}>{icon}</span>
+              <span style={{fontWeight:700,fontSize:'13px',color:col}}>{d==='it'?'IT':'Consultoría'}</span>
+            </div>
+            <div style={{display:'flex',gap:'16px',fontSize:'12px',color:'#6b7280'}}>
+              <span><b style={{color:'#1a1d23',fontSize:'18px',fontWeight:700}}>{deptStats[d].count}</b> usuarios</span>
+              <span><b style={{color:'#1a1d23',fontSize:'18px',fontWeight:700}}>{deptStats[d].projects}</b> proyectos</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* LIST VIEW */}
+      {view==='list'&&(
+        <>
+          {/* migrate banner — only shown when there are users without department */}
+          {all.filter(u=>u.id!=='_admin'&&!u.department).length>0&&(
+            <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'10px',padding:'14px 18px',marginBottom:'12px',display:'flex',alignItems:'center',gap:'14px',flexWrap:'wrap'}}>
+              <span style={{fontSize:'20px'}}>⚠️</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:'13px',color:'#92400e'}}>
+                  {all.filter(u=>u.id!=='_admin'&&!u.department).length} usuario{all.filter(u=>u.id!=='_admin'&&!u.department).length!==1?'s':''} sin departamento asignado
+                </div>
+                <div style={{fontSize:'12px',color:'#b45309',marginTop:'2px'}}>Son usuarios registrados antes de la actualización. Puedes moverlos todos a IT con un clic.</div>
+              </div>
+              <button
+                onClick={async()=>{
+                  if(!confirm('¿Mover todos los usuarios sin departamento a IT?'))return;
+                  const pending=all.filter(u=>u.id!=='_admin'&&!u.department);
+                  await Promise.all(pending.map(u=>window.FB.setUser(u.id,{...u,department:'it'})));
+                }}
+                style={{padding:'8px 16px',background:'#f59e0b',border:'none',borderRadius:'7px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',flexShrink:0,transition:'background .13s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#d97706'}
+                onMouseLeave={e=>e.currentTarget.style.background='#f59e0b'}>
+                Mover todos a IT →
+              </button>
+            </div>
+          )}
+          <div style={{background:'#fff',borderRadius:'10px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+          {filteredList.map((u,i)=>(
+            <div key={u.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 18px',borderTop:i>0?'1px solid #e4e4e0':'none',background:'#fff'}}>
+              <div style={{width:'32px',height:'32px',borderRadius:'50%',background:'#f4f4f2',border:'1px solid #e4e4e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'#888',flexShrink:0}}>{u.name[0].toUpperCase()}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:600,color:'#111',fontSize:'13px'}}>{u.name}</div>
+                <div style={{fontSize:'11px',color:'#ccc'}}>{u.company||'Inverfin'}</div>
+              </div>
+              {/* dept badge or unassigned warning */}
+              {u.department
+                ? <DeptBadge dept={u.department}/>
+                : u.id!=='_admin'&&<span style={{fontSize:'10px',fontWeight:700,color:'#92400e',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'99px',padding:'2px 8px'}}>⚠ Sin dpto.</span>
+              }
+              <span style={{fontSize:'11px',fontWeight:700,color:roleColor[u.role]||'#888',background:(roleColor[u.role]||'#888')+'18',border:`1px solid ${roleColor[u.role]||'#888'}33`,borderRadius:'99px',padding:'3px 10px'}}>{roles[u.role]||u.role}</span>
+              {/* dept reassign selector — only for non-admin */}
+              {u.id!=='_admin'&&(
+                <select
+                  value={u.department||''}
+                  onChange={async e=>{
+                    await window.FB.setUser(u.id,{...u,department:e.target.value});
+                  }}
+                  style={{fontSize:'11px',padding:'3px 7px',border:'1px solid #e5e7eb',borderRadius:'6px',background:'#f9fafb',color:'#374151',cursor:'pointer',fontFamily:'inherit',outline:'none'}}
+                  title="Cambiar departamento">
+                  <option value="">— Asignar —</option>
+                  <option value="it">💻 IT</option>
+                  <option value="consultoria">📊 Consultoría</option>
+                </select>
+              )}
+              {u.id!=='_admin'&&(
+                <button onClick={()=>{if(confirm('¿Eliminar usuario?'))window.FB.setUser(u.id,null)}}
+                  style={{width:'26px',height:'26px',borderRadius:'6px',border:'1px solid #e8eaed',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#e8eaed';e.currentTarget.style.color='#d1d5db';e.currentTarget.style.background='transparent'}}>×</button>
+              )}
+            </div>
+          ))}
+          </div>
+        </>
+      )}
+
+      {/* TREE VIEW */}
+      {view==='tree'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+          {filteredTree.map(({u,owned,asCollab,myTasks})=>{
+            const totalInvolved=owned.length+asCollab.length;
+            const totalTasks=myTasks.length;
+            const doneTasks=myTasks.filter(t=>t.status==='Completado').length;
+            const uDept=u.department||'it';
+            const dCol=deptColor[uDept]||'#888';
+            return(
+              <div key={u.id} style={{background:'#fff',borderRadius:'12px',border:'1px solid #e8eaed',overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,.05)'}}>
+                {/* dept color bar */}
+                <div style={{height:'3px',background:u.id==='_admin'?'#ef4444':dCol}}/>
+                {/* user header */}
+                <div style={{padding:'14px 18px',display:'flex',alignItems:'center',gap:'12px',borderBottom:totalInvolved+totalTasks>0?'1px solid #f3f4f6':'none',background:'#fafafa'}}>
+                  <div style={{width:'36px',height:'36px',borderRadius:'50%',background:`linear-gradient(135deg,${roleColor[u.role]||'#888'},${roleColor[u.role]||'#888'}99)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',fontWeight:700,color:'#fff',flexShrink:0}}>{u.name[0].toUpperCase()}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:'14px',color:'#1a1d23'}}>{u.name}</div>
+                    <div style={{fontSize:'11px',color:'#9ca3af',marginTop:'1px'}}>{u.company||'Inverfin'}</div>
+                  </div>
+                  <div style={{display:'flex',gap:'6px',alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    {u.department&&<DeptBadge dept={u.department}/>}
+                    <span style={{fontSize:'11px',fontWeight:700,color:roleColor[u.role]||'#888',background:(roleColor[u.role]||'#888')+'18',border:`1px solid ${roleColor[u.role]||'#888'}33`,borderRadius:'99px',padding:'3px 10px'}}>{roles[u.role]||u.role}</span>
+                    <span style={{fontSize:'11px',color:'#9ca3af',background:'#f3f4f6',borderRadius:'99px',padding:'3px 10px'}}>{totalInvolved}P · {totalTasks}T</span>
+                  </div>
+                </div>
+
+                {/* tree branches */}
+                {(totalInvolved+totalTasks)>0&&(
+                  <div style={{padding:'12px 18px 14px',display:'flex',flexDirection:'column',gap:'0'}}>
+                    {owned.map(([pid,p],oi)=>{
+                      const pTasks=myTasks.filter(t=>t.pid===pid);
+                      const pDCol=deptColor[p.department||'it']||'#4f73f5';
+                      return(
+                        <div key={pid}>
+                          <div style={{display:'flex',alignItems:'center',gap:'0',marginBottom:pTasks.length>0?'0':'6px'}}>
+                            <div style={{width:'24px',flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div style={{width:'1px',height:'12px',background:'#e5e7eb'}}/>
+                              <div style={{width:'10px',height:'10px',borderRadius:'50%',background:pDCol,border:'2px solid #fff',boxShadow:`0 0 0 1px ${pDCol}`,flexShrink:0}}/>
+                              {pTasks.length>0&&<div style={{width:'1px',flex:1,minHeight:'8px',background:'#e5e7eb'}}/>}
+                            </div>
+                            <div style={{flex:1,padding:'4px 0 4px 8px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                              <span style={{fontSize:'12.5px',fontWeight:600,color:'#1a1d23'}}>{p.name}</span>
+                              <span style={{fontSize:'10px',fontWeight:700,color:pDCol,background:pDCol+'18',borderRadius:'99px',padding:'1px 7px'}}>Propietario</span>
+                              {p.client&&<span style={{fontSize:'10px',color:'#7c3aed',background:'#f5f3ff',borderRadius:'99px',padding:'1px 7px'}}>🏢 {p.client}</span>}
+                              <span style={{fontSize:'10px',color:'#9ca3af',marginLeft:'auto'}}>{pct(allTasks[pid]||{})}%</span>
+                            </div>
+                          </div>
+                          {pTasks.map((t,ti)=>(
+                            <div key={t.tid} style={{display:'flex',alignItems:'center',gap:'0',marginBottom:ti===pTasks.length-1?'6px':'0'}}>
+                              <div style={{width:'24px',flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                                <div style={{width:'1px',flex:1,background:'#e5e7eb'}}/>
+                              </div>
+                              <div style={{width:'20px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'flex-end',marginRight:'4px'}}>
+                                <div style={{width:'14px',height:'1px',background:'#e5e7eb'}}/>
+                                <div style={{width:'6px',height:'6px',borderRadius:'50%',background:statusDot[t.status]||'#9ca3af',flexShrink:0}}/>
+                              </div>
+                              <div style={{flex:1,padding:'3px 0 3px 6px'}}>
+                                <span style={{fontSize:'11.5px',color:'#6b7280'}}>{t.name}</span>
+                                <span style={{marginLeft:'6px',fontSize:'10px',color:statusDot[t.status],fontWeight:600}}>{t.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {asCollab.map(({pid,role:cr,pName,pDept},ci)=>{
+                      const pTasks=myTasks.filter(t=>t.pid===pid);
+                      const pDCol=deptColor[pDept||'it']||'#22c55e';
+                      const isCrossCollab=(pDept||'it')!==(u.department||'it');
+                      return(
+                        <div key={pid+'-collab'}>
+                          <div style={{display:'flex',alignItems:'center',gap:'0',marginBottom:pTasks.length>0?'0':'6px'}}>
+                            <div style={{width:'24px',flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div style={{width:'1px',height:'12px',background:'#e5e7eb'}}/>
+                              <div style={{width:'10px',height:'10px',borderRadius:'50%',background:'#22c55e',border:'2px solid #fff',boxShadow:'0 0 0 1px #22c55e',flexShrink:0}}/>
+                              {pTasks.length>0&&<div style={{width:'1px',flex:1,minHeight:'8px',background:'#e5e7eb'}}/>}
+                            </div>
+                            <div style={{flex:1,padding:'4px 0 4px 8px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                              <span style={{fontSize:'12.5px',fontWeight:600,color:'#1a1d23'}}>{pName}</span>
+                              <span style={{fontSize:'10px',fontWeight:700,color:'#16a34a',background:'#dcfce7',borderRadius:'99px',padding:'1px 7px'}}>{cr||'Colaborador'}</span>
+                              {isCrossCollab&&<span style={{fontSize:'10px',color:'#f59e0b',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'99px',padding:'1px 7px'}}>🔗 Cross-dpto</span>}
+                            </div>
+                          </div>
+                          {pTasks.map((t,ti)=>(
+                            <div key={t.tid} style={{display:'flex',alignItems:'center',gap:'0',marginBottom:ti===pTasks.length-1?'6px':'0'}}>
+                              <div style={{width:'24px',flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                                <div style={{width:'1px',flex:1,background:'#e5e7eb'}}/>
+                              </div>
+                              <div style={{width:'20px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'flex-end',marginRight:'4px'}}>
+                                <div style={{width:'14px',height:'1px',background:'#e5e7eb'}}/>
+                                <div style={{width:'6px',height:'6px',borderRadius:'50%',background:statusDot[t.status]||'#9ca3af',flexShrink:0}}/>
+                              </div>
+                              <div style={{flex:1,padding:'3px 0 3px 6px'}}>
+                                <span style={{fontSize:'11.5px',color:'#6b7280'}}>{t.name}</span>
+                                <span style={{marginLeft:'6px',fontSize:'10px',color:statusDot[t.status],fontWeight:600}}>{t.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {myTasks.filter(t=>!owned.find(([pid])=>pid===t.pid)&&!asCollab.find(c=>c.pid===t.pid)).map((t,ti,arr)=>(
+                      <div key={t.tid} style={{display:'flex',alignItems:'center',gap:'0',marginBottom:ti===arr.length-1?'0':'4px'}}>
+                        <div style={{width:'24px',flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                          <div style={{width:'1px',height:'12px',background:'#e5e7eb'}}/>
+                          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:statusDot[t.status]||'#9ca3af',flexShrink:0}}/>
+                        </div>
+                        <div style={{flex:1,padding:'3px 0 3px 8px'}}>
+                          <span style={{fontSize:'11.5px',color:'#6b7280'}}>{t.name}</span>
+                          <span style={{marginLeft:'6px',fontSize:'10px',color:'#9ca3af'}}>{t.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {totalInvolved===0&&totalTasks===0&&(
+                      <div style={{paddingLeft:'32px',fontSize:'12px',color:'#d1d5db',fontStyle:'italic'}}>Sin actividad asignada</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   EXPORT EXCEL
+══════════════════════════════════ */
+const exportExcel = async (projects, allTasks, reports, users) => {
+  const EX = window.ExcelJS;
+  if (!EX) { alert('ExcelJS no cargado'); return; }
+  const btn = document.querySelector('[data-export-btn]');
+  if (btn) { btn.textContent = 'Generando...'; btn.disabled = true; }
+  try {
+    const costs = {};
+    await Promise.all(Object.keys(projects).map(pid =>
+      new Promise(res => { const u = window.FB.onCosts(pid, c => { u(); costs[pid]=c||{}; res(); }); })
+    ));
+    const wb = new EX.Workbook();
+    wb.creator = 'InverWork — Inverfin Holding'; wb.created = new Date();
+    const pa = Object.entries(projects);
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+    const fmtD = d => d ? new Date(d).toLocaleDateString('es-ES') : '';
+    const pct = (tsk) => { const a=Object.values(tsk||{}); return a.length?Math.round(a.filter(t=>t.status==='Completado').length/a.length*100):0; };
+    const P = { sb:'1E2433',sb2:'2D3748',blue:'4F73F5',green:'2D8A58',green2:'10B981',amber:'D97706',purple:'6B4FA8',gold:'FFC000',ink:'1A1D23',muted:'6B7280',input:'0070C0',formula:'000000',even:'F7F8FA',odd:'FFFFFF',border:'D0D5DD' };
+    const fill = hex => ({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}});
+    const fnt = (bold=false,color='000000',size=9,italic=false) => ({name:'Arial',bold,color:{argb:'FF'+color},size,italic});
+    const aln = (horizontal='left',wrapText=false) => ({horizontal,vertical:'middle',wrapText});
+    const bdr = () => ({top:{style:'thin',color:{argb:'FFD0D5DD'}},bottom:{style:'thin',color:{argb:'FFD0D5DD'}},left:{style:'thin',color:{argb:'FFD0D5DD'}},right:{style:'thin',color:{argb:'FFD0D5DD'}}});
+    const FCFA='#,##0 "FCFA"', HRS='#,##0.0 "h"', PCT='0%', PCT1='0.0%';
+    const addHeaderRow = (ws,headers,bg,rowH=20) => {
+      const row=ws.addRow(headers); row.height=rowH;
+      headers.forEach((_,i)=>{ const c=row.getCell(i+1); c.font=fnt(true,'FFFFFF',9); c.fill=fill(bg); c.alignment=aln('center'); c.border=bdr(); });
+      return row;
+    };
+    /* HOJA 1 — RESUMEN */
+    const ws1=wb.addWorksheet('Resumen Ejecutivo',{properties:{tabColor:{argb:'FF4F73F5'}}});
+    ws1.views=[{showGridLines:false}];
+    const tot_costs=pa.reduce((s,[pid])=>s+Object.values(costs[pid]||{}).reduce((ss,c)=>ss+(+c.amount||0),0),0);
+    const tot_hrs=pa.reduce((s,[pid])=>s+Object.values(allTasks[pid]||{}).reduce((ss,t)=>ss+(+t.timeSpent||0)/60,0),0);
+    const completados=pa.filter(([,p])=>p.status==='Finalizado').length;
+    const activos=pa.filter(([,p])=>['Activo','En progreso'].includes(p.status)).length;
+    const avg_pct=pa.length?Math.round(pa.reduce((s,[pid])=>s+pct(allTasks[pid]||{}),0)/pa.length):0;
+    ws1.mergeCells('A1:M1'); ws1.getRow(1).height=44;
+    const b1=ws1.getCell('A1'); b1.value='INVERFIN HOLDING  ·  InverWork — Informe General de Proyectos';
+    b1.font=fnt(true,'FFFFFF',15); b1.fill=fill(P.sb); b1.alignment=aln('center');
+    ws1.mergeCells('A2:M2'); ws1.getRow(2).height=18;
+    const b2=ws1.getCell('A2'); b2.value=`Generado: ${todayStr}   |   Período: Acumulado   |   Empresa: Inverfin Holding`;
+    b2.font=fnt(false,'AAAAAA',9,true); b2.fill=fill(P.sb2); b2.alignment=aln('center');
+    ws1.mergeCells('A3:M3'); ws1.getRow(3).height=8; ws1.getCell('A3').fill=fill('EEEEEE');
+    ws1.getRow(4).height=18; ws1.getRow(5).height=40;
+    const kpis=[['Total Proyectos',pa.length,null,P.blue,'A','B'],['Activos',activos,null,P.sb,'C','D'],['Finalizados',completados,null,P.green,'E','F'],['Avance Promedio',avg_pct/100,PCT,P.sb,'G','H'],['Total Costes',tot_costs,FCFA,P.amber,'I','J'],['Horas Totales',Math.round(tot_hrs*10)/10,HRS,P.sb,'K','M']];
+    kpis.forEach(([lbl,val,fmt,bg,sc,ec])=>{
+      ws1.mergeCells(`${sc}4:${ec}4`); ws1.mergeCells(`${sc}5:${ec}5`);
+      const cl=ws1.getCell(`${sc}4`); cl.value=lbl; cl.font=fnt(true,'FFFFFF',9); cl.fill=fill(bg); cl.alignment=aln('center');
+      const cv=ws1.getCell(`${sc}5`); cv.value=val; cv.font=fnt(true,'FFFFFF',20); cv.fill=fill(bg); cv.alignment=aln('center');
+      if(fmt) cv.numFmt=fmt;
+      ['4','5'].forEach(r=>{ for(let col=sc.charCodeAt(0);col<=ec.charCodeAt(0);col++){ ws1.getCell(`${String.fromCharCode(col)}${r}`).fill=fill(bg); } });
+    });
+    ws1.mergeCells('A6:M6'); ws1.getRow(6).height=8; ws1.getCell('A6').fill=fill('F4F4F2');
+    addHeaderRow(ws1,['#','Proyecto','Responsable','Empresa','Estado','F.Inicio','F.Fin Est.','Avance','Tareas','Hechas','Horas','Costes (FCFA)','Descripción'],P.blue,22);
+    pa.forEach(([pid,p],i)=>{
+      const ptsk=allTasks[pid]||{}; const pcst=Object.values(costs[pid]||{});
+      const v=pct(ptsk); const allT=Object.values(ptsk); const done=allT.filter(t=>t.status==='Completado').length;
+      const hrs=allT.reduce((s,t)=>s+(+t.timeSpent||0)/60,0); const costSum=pcst.reduce((s,c)=>s+(+c.amount||0),0);
+      const row=ws1.addRow([i+1,p.name,p.ownerName||'',p.company||'Inverfin',p.status||'',fmtD(p.startDate),fmtD(p.endDate),v/100,allT.length,done,Math.round(hrs*10)/10,costSum,p.description||'']);
+      row.height=17; const bg=i%2===0?P.even:P.odd;
+      const fmts=[null,null,null,null,null,null,null,PCT,null,null,HRS,FCFA,null];
+      const fcs=[P.muted,P.ink,P.muted,P.muted,P.muted,P.muted,P.muted,v===100?P.green:P.input,P.muted,P.muted,P.input,P.input,P.muted];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(idx<=2||idx===13?'left':'center'); if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+    });
+    const tRow1=ws1.addRow(['TOTALES','','','','','','','',pa.length>0?Math.round(pa.reduce((s,[pid])=>s+Object.values(allTasks[pid]||{}).length,0)):0,'','',tot_costs,'']);
+    tRow1.height=20; ws1.mergeCells(`A${tRow1.number}:H${tRow1.number}`);
+    tRow1.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===12) c.numFmt=FCFA; });
+    ws1.columns=[{width:5},{width:26},{width:18},{width:16},{width:14},{width:13},{width:13},{width:12},{width:8},{width:8},{width:10},{width:16},{width:30}];
+    ws1.views=[{state:'frozen',ySplit:7,showGridLines:false}];
+    /* HOJA 2 — PROYECTOS */
+    const ws2=wb.addWorksheet('Proyectos',{properties:{tabColor:{argb:'FF2D8A58'}}});
+    ws2.views=[{showGridLines:false}];
+    ws2.mergeCells('A1:L1'); ws2.getRow(1).height=32;
+    const h2=ws2.getCell('A1'); h2.value='Proyectos — Cuentas Analíticas'; h2.font=fnt(true,'FFFFFF',12); h2.fill=fill(P.green); h2.alignment=aln('center');
+    addHeaderRow(ws2,['Cta. Analítica','Proyecto','Responsable','Empresa','Estado','F.Inicio','F.Fin Est.','Avance','Centro Coste','Tareas','Costes (FCFA)','Descripción'],P.green);
+    pa.forEach(([pid,p],i)=>{
+      const acc=`AN-${String(i+1).padStart(3,'0')}`; const cc='CC-'+(p.name||'').slice(0,4).toUpperCase().replace(/\s/g,'');
+      const ptsk=Object.values(allTasks[pid]||{}); const v=pct(allTasks[pid]||{});
+      const costSum=Object.values(costs[pid]||{}).reduce((s,c)=>s+(+c.amount||0),0);
+      const row=ws2.addRow([acc,p.name,p.ownerName||'',p.company||'Inverfin',p.status||'',fmtD(p.startDate),fmtD(p.endDate),v/100,cc,ptsk.length,costSum,p.description||'']);
+      row.height=16; const bg=i%2===0?P.even:P.odd;
+      const fmts=[null,null,null,null,null,null,null,PCT,null,null,FCFA,null];
+      const fcs=[P.formula,P.ink,P.muted,P.muted,P.muted,P.muted,P.muted,P.input,P.formula,P.muted,P.input,P.muted];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(idx<=2||idx===12?'left':'center'); if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+    });
+    ws2.columns=[{width:12},{width:28},{width:18},{width:16},{width:14},{width:14},{width:14},{width:14},{width:10},{width:12},{width:12},{width:30}];
+    ws2.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 3 — TAREAS */
+    const ws3=wb.addWorksheet('Tareas',{properties:{tabColor:{argb:'FF10B981'}}});
+    ws3.views=[{showGridLines:false}];
+    ws3.mergeCells('A1:K1'); ws3.getRow(1).height=32;
+    const h3=ws3.getCell('A1'); h3.value='Tareas — Partes de Horas'; h3.font=fnt(true,'FFFFFF',12); h3.fill=fill(P.green2); h3.alignment=aln('center');
+    addHeaderRow(ws3,['ID Tarea','Proyecto','Nombre Tarea','Asignado A','Estado','Fecha Creación','T.Est (h)','T.Real (h)','Eficiencia %','Cta. Analítica','Descripción'],P.green2);
+    let tIdx=1, totEst=0, totReal=0;
+    pa.forEach(([pid,p],pi)=>{
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`;
+      Object.values(allTasks[pid]||{}).forEach(t=>{
+        const est=+(t.timeEstimated||0); const real=(+(t.timeSpent||0))/60; const eff=est>0?Math.round(real/est*1000)/1000:0;
+        totEst+=est; totReal+=real;
+        const row=ws3.addRow([`TSK-${String(tIdx++).padStart(3,'0')}`,p.name,t.name,t.assignedName||'',t.status||'',fmtD(t.createdAt),Math.round(est*10)/10,Math.round(real*10)/10,eff,acc,t.description||'']);
+        row.height=16; const bg=(tIdx-2)%2===0?P.even:P.odd;
+        const fcs=[P.muted,P.muted,P.ink,P.muted,P.muted,P.muted,P.input,P.input,eff>=1?P.green:(eff<0.5&&est>0?'C0392B':P.formula),P.formula,P.muted];
+        row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===3,fcs[idx-1],9); c.alignment=aln(['center','left','left','left','center','center','center','center','center','center','left'][idx-1]); const fmts=[null,null,null,null,null,null,HRS,HRS,PCT1,null,null]; if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+      });
+    });
+    const totEff=totEst>0?Math.round(totReal/totEst*1000)/1000:0;
+    const tRow3=ws3.addRow(['TOTALES','','','','','',Math.round(totEst*10)/10,Math.round(totReal*10)/10,totEff,'','']);
+    tRow3.height=20; ws3.mergeCells(`A${tRow3.number}:F${tRow3.number}`);
+    tRow3.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===7||i===8) c.numFmt=HRS; if(i===9) c.numFmt=PCT1; });
+    ws3.columns=[{width:12},{width:22},{width:26},{width:18},{width:14},{width:14},{width:14},{width:13},{width:12},{width:12},{width:30}];
+    ws3.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 4 — COSTES */
+    const ws4=wb.addWorksheet('Costes',{properties:{tabColor:{argb:'FFD97706'}}});
+    ws4.views=[{showGridLines:false}];
+    ws4.mergeCells('A1:L1'); ws4.getRow(1).height=32;
+    const h4=ws4.getCell('A1'); h4.value='Costes — Facturas y Apuntes Contables'; h4.font=fnt(true,'FFFFFF',12); h4.fill=fill(P.amber); h4.alignment=aln('center');
+    addHeaderRow(ws4,['ID Coste','Proyecto','Concepto','Fecha','Base (FCFA)','Imp.CEMAC (18%)','Total c/Imp (FCFA)','Cta. Contable','Cta. Analítica','Centro Coste','Estado Pago','Notas'],P.amber);
+    let cIdx=1, totBase=0, totImp=0, totTot=0;
+    pa.forEach(([pid,p],pi)=>{
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`; const cc='CC-'+(p.name||'').slice(0,4).toUpperCase().replace(/\s/g,'');
+      Object.values(costs[pid]||{}).forEach(co=>{
+        const base=+(co.amount||0); const imp=Math.round(base*0.18); const tot=base+imp;
+        totBase+=base; totImp+=imp; totTot+=tot;
+        const row=ws4.addRow([`CST-${String(cIdx++).padStart(3,'0')}`,p.name,co.description||'',fmtD(co.date),base,imp,tot,'627000',acc,cc,'Pagado','']);
+        row.height=16; const bg=(cIdx-2)%2===0?P.even:P.odd;
+        const fcs=[P.muted,P.muted,P.ink,P.muted,P.input,P.formula,P.formula,P.formula,P.formula,P.formula,P.muted,P.muted];
+        row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===3,fcs[idx-1],9); c.alignment=aln(['center','left','left','center','center','center','center','center','center','center','center','left'][idx-1]); const fmts=[null,null,null,null,FCFA,FCFA,FCFA,null,null,null,null,null]; if(fmts[idx-1]) c.numFmt=fmts[idx-1]; });
+      });
+    });
+    const tRow4=ws4.addRow(['TOTALES','','','',Math.round(totBase),Math.round(totImp),Math.round(totTot),'','','','','']);
+    tRow4.height=20; ws4.mergeCells(`A${tRow4.number}:D${tRow4.number}`);
+    tRow4.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if([5,6,7].includes(i)) c.numFmt=FCFA; });
+    ws4.columns=[{width:12},{width:22},{width:26},{width:13},{width:18},{width:15},{width:18},{width:13},{width:13},{width:13},{width:12},{width:20}];
+    ws4.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* HOJA 5 — REPORTES */
+    const ws5=wb.addWorksheet('Reportes',{properties:{tabColor:{argb:'FF6B4FA8'}}});
+    ws5.views=[{showGridLines:false}];
+    ws5.mergeCells('A1:I1'); ws5.getRow(1).height=32;
+    const h5=ws5.getCell('A1'); h5.value='Reportes Diarios — Partes de Trabajo'; h5.font=fnt(true,'FFFFFF',12); h5.fill=fill(P.purple); h5.alignment=aln('center');
+    addHeaderRow(ws5,['ID Reporte','Empleado','Proyecto','Fecha','Horas','Tareas Realizadas','Problemas Detectados','Notas','Cta. Analítica'],P.purple);
+    const repList=Object.values(reports||{}).sort((a,b)=>new Date(a.date||0)-new Date(b.date||0));
+    let totH=0;
+    repList.forEach((r,i)=>{
+      const pid=r.projectId||''; const pi=pa.findIndex(([p])=>p===pid);
+      const acc=`AN-${String(pi+1).padStart(3,'0')}`; const hrs=+(r.hoursWorked||0); totH+=hrs;
+      const row=ws5.addRow([`RPT-${String(i+1).padStart(3,'0')}`,r.userName||'',r.projectName||'—',fmtD(r.date),hrs,r.tasks||'',r.problems||'',r.notes||'',acc]);
+      row.height=18; const bg=i%2===0?P.even:P.odd;
+      const fcs=[P.muted,P.ink,P.muted,P.muted,P.input,P.muted,!!(r.problems||'').trim()?'C0392B':P.muted,P.muted,P.formula];
+      row.eachCell((c,idx)=>{ c.fill=fill(bg); c.border=bdr(); c.font=fnt(idx===2,fcs[idx-1],9); c.alignment=aln(['center','left','left','center','center','left','left','left','center'][idx-1],[6,7,8].includes(idx)); if(idx===5) c.numFmt=HRS; });
+    });
+    const tRow5=ws5.addRow(['TOTAL HORAS','','','',Math.round(totH*10)/10,'','','','']);
+    tRow5.height=20; ws5.mergeCells(`A${tRow5.number}:D${tRow5.number}`);
+    tRow5.eachCell((c,i)=>{ c.fill=fill(P.gold); c.font=fnt(true,P.ink,10); c.border=bdr(); c.alignment=aln(i===1?'right':'center'); if(i===5) c.numFmt=HRS; });
+    ws5.columns=[{width:12},{width:18},{width:22},{width:13},{width:12},{width:36},{width:28},{width:24},{width:13}];
+    ws5.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+    /* DOWNLOAD */
+    const buffer=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`InverWork_Informe_${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al exportar: '+e.message); console.error(e);
+  } finally {
+    if(btn){ btn.textContent='Exportar Excel'; btn.disabled=false; }
   }
-}
-requestAnimationFrame(loop);
+};
+
+/* ══════════════════════════════════
+   APP
+══════════════════════════════════ */
+const App=()=>{
+  const[splash,  setSplash]  =useState(true);
+  const[user,    setUser]    =useState(null);
+  const[tab,     setTab]     =useState('dashboard');
+  const[openProj,setOpenProj]=useState(null);
+  const[projects,setProjects]=useState({});
+  const[allTasks,setAllTasks]=useState({});
+  const[reports, setReports] =useState({});
+  const[users,   setUsers]   =useState({});
+  const[synced,  setSynced]  =useState(false);
+  const[notifs,  setNotifs]  =useState(0);
+  const[notifOpen,setNotifOpen]=useState(false);
+  const[allCollabs,setAllCollabs]=useState({});
+  const UPDATE_KEY='iw_update_v4_seen';
+  const[showUpdate,setShowUpdate]=useState(false);
+
+  /* Firebase ready */
+  useEffect(()=>{
+    const done=()=>{setSynced(true);setTimeout(()=>setSplash(false),900)};
+    if(window.FB){done();}
+    else{window.addEventListener('fb',done);return()=>window.removeEventListener('fb',done);}
+    setTimeout(()=>setSplash(false),5000);
+  },[]);
+
+  /* Live data subscriptions — start when user logs in */
+  useEffect(()=>{
+    if(!user)return;
+    const startSubs=()=>{
+      const u1=window.FB.onProjects(d=>{
+        const raw=d||{};
+        // auto-migrate projects without department → it
+        const toFix=Object.entries(raw).filter(([,p])=>!p.department);
+        if(toFix.length>0){
+          toFix.forEach(([pid])=>window.FB.updProject(pid,{department:'it'}));
+        }
+        setProjects(raw);
+      });
+      const u2=window.FB.onReports(d=>{
+        const rd=d||{};
+        setReports(rd);
+        setNotifs(Object.values(rd).filter(r=>r.userId!==user.id).length);
+      });
+      const u3=window.FB.onUsers(d=>setUsers(d||{}));
+      const u4=window.FB.onAllTasks(d=>setAllTasks(d||{}));
+      const u5=window.FB.onAllCollabs(d=>setAllCollabs(d||{}));
+      setSynced(true);
+      return()=>{u1();u2();u3();u4();u5()};
+    };
+    if(window.FB) return startSubs();
+    const h=()=>{window.removeEventListener('fb',h);startSubs()};
+    window.addEventListener('fb',h);
+    return()=>window.removeEventListener('fb',h);
+  },[user]);
+
+  const isAdmin  = user?.role==='admin';
+  const isGerenc = user?.role==='gerencia';
+  const isEmp    = user?.role==='empleado';
+
+  /* ── Tabs por rol ──
+     Admin    : Dashboard global, Proyectos (solo ver), Reportes (ver+comentar), Usuarios (ver+eliminar)
+     Gerencia : Dashboard global, Proyectos (solo ver), Reportes (ver+comentar)
+     Empleado : Inicio personal, Proyectos (crear+gestionar propios), Equipo (ver), Reportes (crear propios)
+  */
+  const TABS=!user?[]:
+    isAdmin?[
+      {id:'overview', label:'Dashboard', icon:'◈'},
+      {id:'projects', label:'Proyectos', icon:'▤'},
+      {id:'reports',  label:'Reportes',  icon:'✎'},
+      {id:'users',    label:'Usuarios',  icon:'◉'},
+    ]:
+    isGerenc?[
+      {id:'overview', label:'Dashboard', icon:'◈'},
+      {id:'projects', label:'Proyectos', icon:'▤'},
+      {id:'reports',  label:'Reportes',  icon:'✎'},
+    ]:[
+      {id:'dashboard',label:'Inicio',    icon:'⌂'},
+      {id:'projects', label:'Proyectos', icon:'▤'},
+      {id:'team',     label:'Equipo',    icon:'◎'},
+      {id:'reports',  label:'Reportes',  icon:'✎'},
+    ];
+
+  const go=(t,pid,p)=>{
+    if(t==='proj'&&pid){setOpenProj({id:pid,data:p});setTab('projects');}
+    else{setTab(t);setOpenProj(null);}
+  };
+
+  const login=u=>{
+    setUser(u);
+    setTab(u.role==='admin'||u.role==='gerencia'?'overview':'dashboard');
+    if(!localStorage.getItem(UPDATE_KEY)) setShowUpdate(true);
+  };
+
+  const logout=()=>{setUser(null);setTab('dashboard');setOpenProj(null);setSynced(false)};
+
+  const activeTab=openProj?'projects':tab;
+
+  if(splash) return <Splash/>;
+  if(!user)  return <Auth onLogin={login}/>;
+
+  return(
+    <div style={{height:'100vh',display:'flex',flexDirection:'row',background:'#f0f2f5',overflow:'hidden'}}>
+
+      {/* SIDEBAR — desktop only */}
+      <div className="hidden md:block" style={{flexShrink:0}}>
+        <Sidebar user={user} tab={activeTab} go={go} tabs={TABS} synced={synced} notifs={notifs} onNotif={()=>setNotifOpen(v=>!v)} onLogout={logout}/>
+      </div>
+
+      {/* MAIN */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,height:'100vh',overflow:'hidden'}}>
+
+        {/* Mobile header */}
+        <div className="md:hidden" style={{flexShrink:0}}>
+          <MobileBar user={user} tab={activeTab} go={go} tabs={TABS} notifs={notifs} onNotif={()=>setNotifOpen(v=>!v)} onLogout={logout}/>
+        </div>
+
+        {/* Scrollable content — plain overflow-y:auto, no overflow:hidden wrapper */}
+        <div style={{flex:1,overflowY:'auto',overflowX:'hidden',background:'#f0f2f5'}}>
+          <div style={{maxWidth:'940px',margin:'0 auto',padding:'32px 28px 100px'}}>
+            {activeTab==='dashboard'&&isEmp   &&<Dashboard user={user} projects={projects} allTasks={allTasks} reports={reports} go={go}/>}
+            {activeTab==='projects'          &&<Projects  user={user} projects={projects} allTasks={allTasks} openProj={openProj} setOpenProj={setOpenProj} allUsers={users} allCollabs={allCollabs}/>}
+            {activeTab==='team'     &&isEmp   &&<Team      user={user} projects={projects} allTasks={allTasks}/>}
+            {activeTab==='reports'           &&<Reports    user={user} projects={projects} reports={reports}/>}
+            {activeTab==='overview'&&(isAdmin||isGerenc)&&<Overview projects={projects} allTasks={allTasks} reports={reports} users={users} onExport={()=>exportExcel(projects,allTasks,reports,users)}/>}
+            {activeTab==='users'   &&isAdmin  &&<Users     users={users} projects={projects} allTasks={allTasks} allCollabs={allCollabs}/>}
+          </div>
+        </div>
+
+        {/* Footer desktop */}
+        <div className="hidden md:flex" style={{flexShrink:0,alignItems:'center',justifyContent:'space-between',padding:'10px 28px',borderTop:'1px solid rgba(255,255,255,.1)',background:'#1e2433'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+            <img src={LOGO} style={{width:'16px',height:'16px',borderRadius:'3px',opacity:.5}} alt=""/>
+            <span className="g" style={{fontSize:'12px',color:'rgba(255,255,255,.4)'}}>InverWork · Inverfin Holding</span>
+          </div>
+          <span style={{fontSize:'11px',color:'rgba(255,255,255,.2)',fontStyle:'italic'}}>Created by Jesús Santiago · Inverfin © 2026</span>
+        </div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <div className="md:hidden" style={{position:'fixed',bottom:0,left:0,right:0,zIndex:100,background:'#1e2433',borderTop:'1px solid rgba(255,255,255,.08)',display:'flex'}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>go(t.id)}
+            style={{flex:1,padding:'8px 4px',fontSize:'9px',fontWeight:500,border:'none',borderTop:`2px solid ${activeTab===t.id?'#4f73f5':'transparent'}`,color:activeTab===t.id?'#7fa4ff':'rgba(255,255,255,.35)',background:'transparent',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',textTransform:'uppercase',letterSpacing:.5}}>
+            <span style={{fontSize:'15px'}}>{t.icon}</span>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Invite Banner — floating for current user */}
+      {user&&<InviteBanner user={user} projects={projects}/>}
+
+      {/* Consultoría Welcome Banner */}
+      {user&&<ConsultoriaBanner user={user}/>}
+
+      {/* Notifications panel */}
+      {notifOpen&&portal(
+        <div onClick={()=>setNotifOpen(false)} style={{position:'fixed',inset:0,zIndex:8000}}>
+          <div onClick={e=>e.stopPropagation()} className="mi"
+            style={{position:'absolute',top:'60px',right:'16px',width:'270px',background:'#fff',border:'1px solid #e4e4e0',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.1)',overflow:'hidden'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid #e4e4e0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span className="g" style={{fontSize:'16px',fontWeight:500}}>Notificaciones</span>
+              <button onClick={()=>setNotifOpen(false)} style={{fontSize:'17px',color:'#888',background:'none',border:'none',cursor:'pointer'}}>×</button>
+            </div>
+            <div style={{maxHeight:'260px',overflowY:'auto'}}>
+              {Object.values(reports).length===0&&<div style={{padding:'28px',textAlign:'center',fontSize:'13px',color:'#888'}}>Sin notificaciones.</div>}
+              {Object.values(reports).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,12).map((r,i)=>(
+                <div key={i} style={{padding:'9px 16px',borderTop:i>0?'1px solid #e4e4e0':'none'}}>
+                  <div style={{fontSize:'12px',color:'#111'}}><b>{r.userName}</b> envió un reporte</div>
+                  <div style={{fontSize:'11px',color:'#ccc',marginTop:'1px'}}>{dFmt(r.date)}{r.projectName?' · '+r.projectName:''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BANNER DE ACTUALIZACIÓN ── */}
+      {showUpdate&&portal(
+        <div style={{position:'fixed',inset:0,zIndex:9500,display:'flex',alignItems:'flex-end',justifyContent:'flex-end',padding:'24px',pointerEvents:'none'}}>
+          <div className="mi" style={{pointerEvents:'all',width:'336px',background:'#0d1117',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',boxShadow:'0 24px 64px rgba(0,0,0,.5)',overflow:'hidden'}}>
+            <div style={{background:'linear-gradient(135deg,#1e3a8a 0%,#4f73f5 100%)',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'8px',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div>
+                  <div style={{color:'#fff',fontSize:'12.5px',fontWeight:700,letterSpacing:'-.01em',lineHeight:1}}>Nuevas funcionalidades</div>
+                  <div style={{color:'rgba(255,255,255,.5)',fontSize:'10px',marginTop:'3px'}}>InverWork · versión 1.4</div>
+                </div>
+              </div>
+              <button onClick={()=>{setShowUpdate(false);localStorage.setItem(UPDATE_KEY,'1')}}
+                style={{width:'24px',height:'24px',borderRadius:'50%',background:'rgba(255,255,255,.12)',border:'none',cursor:'pointer',color:'rgba(255,255,255,.55)',fontSize:'15px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .14s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,.22)';e.currentTarget.style.color='#fff'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,.12)';e.currentTarget.style.color='rgba(255,255,255,.55)'}}>×</button>
+            </div>
+            <div style={{padding:'16px 18px 18px'}}>
+              <div style={{color:'rgba(255,255,255,.35)',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'1.3px',marginBottom:'14px'}}>Novedades incluidas</div>
+              <div style={{display:'flex',flexDirection:'column',gap:'11px'}}>
+                {[
+                  {color:'#818cf8',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,title:'Departamentos IT y Consultoría',desc:'Cada equipo gestiona sus propios proyectos con campos específicos. Visibilidad separada por departamento.'},
+                  {color:'#34d399',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>,title:'Colaboración cross-departamento',desc:'Invita a miembros de otro departamento a colaborar. Acceso controlado solo al proyecto específico.'},
+                  {color:'#f59e0b',icon:<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>,title:'Árbol de usuarios mejorado',desc:'El Admin filtra el diagrama por departamento y ve colaboraciones cross-dpto en tiempo real.'},
+                ].map(({color,icon,title,desc},i)=>(
+                  <div key={i} style={{display:'flex',gap:'12px',alignItems:'flex-start'}}>
+                    <span style={{width:'26px',height:'26px',borderRadius:'7px',background:color+'18',border:`1px solid ${color}30`,color,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:'1px'}}>{icon}</span>
+                    <div>
+                      <div style={{color:'rgba(255,255,255,.82)',fontSize:'12px',fontWeight:600,lineHeight:1.2,letterSpacing:'-.01em'}}>{title}</div>
+                      <div style={{color:'rgba(255,255,255,.3)',fontSize:'11px',marginTop:'3px',lineHeight:1.5}}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>{setShowUpdate(false);localStorage.setItem(UPDATE_KEY,'1')}}
+                style={{width:'100%',marginTop:'18px',padding:'9px 0',background:'#4f73f5',border:'none',borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:600,cursor:'pointer',letterSpacing:'-.01em',transition:'background .13s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#3558e0'}
+                onMouseLeave={e=>e.currentTarget.style.background='#4f73f5'}>
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
