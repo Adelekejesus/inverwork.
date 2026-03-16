@@ -506,12 +506,6 @@ const ProjectCard=({pid,p,tasks,onClick,onDelete,canDelete})=>{
             {p.fees&&<div style={{fontSize:'11px',color:'#7c3aed',fontWeight:600}}>{Number(p.fees).toLocaleString('es-ES')} FCFA</div>}
           </div>
         )}
-        {p.department==='it'&&p.techStack&&(
-          <div style={{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid #f3f4f6'}}>
-            <div style={{fontSize:'11px',color:'#0369a1',fontWeight:600,display:'flex',alignItems:'center',gap:'4px'}}><span>⚙️</span>{p.techStack}</div>
-            {p.environment&&<div style={{fontSize:'10px',color:'#9ca3af',marginTop:'2px'}}>{p.environment}</div>}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -585,17 +579,14 @@ const DeptBadge=({dept})=>{
   return null;
 };
 
-const ProjectsList=({user,projects,allTasks,openProject,allCollabs})=>{
+const ProjectsList=({user,projects,allTasks,openProject,allCollabs,allUsers})=>{
   const[show,setShow]=useState(false);
-  /* IT fields */
+  /* base fields */
   const[nm,setNm]=useState('');
   const[desc,setDesc]=useState('');
   const[sd,setSd]=useState('');
   const[ed,setEd]=useState('');
   const[st,setSt]=useState('Activo');
-  const[techStack,setTechStack]=useState('');
-  const[environment,setEnvironment]=useState('Desarrollo');
-  const[repoUrl,setRepoUrl]=useState('');
   /* Consultoría fields */
   const[client,setClient]=useState('');
   const[consultType,setConsultType]=useState('Estrategia empresarial');
@@ -603,34 +594,61 @@ const ProjectsList=({user,projects,allTasks,openProject,allCollabs})=>{
   const[fees,setFees]=useState('');
   const[reportDate,setReportDate]=useState('');
   const[leadConsultant,setLeadConsultant]=useState('');
+  /* collaborators to invite on creation */
+  const[collabList,setCollabList]=useState([]); // [{userId, userName, role}]
+  const[selUser,setSelUser]=useState('');
+  const[selRole,setSelRole]=useState('Colaborador');
 
   const admin=user.role==='admin'||user.role==='gerencia';
   const userDept=user.department||'it';
 
-  /* visibility rule */
   const canSeeProject=(pid,p)=>{
     if(admin)return true;
     if((p.department||'it')===userDept)return true;
-    // check if user is a collaborator
     const cols=allCollabs?.[pid]||{};
     return Object.values(cols).some(c=>c.userId===user.id);
   };
 
   const list=Object.entries(projects).filter(([pid,p])=>canSeeProject(pid,p));
 
+  // candidate users to invite (same or other dept, not self, not already added)
+  const candidates=Object.values(allUsers||{}).filter(u=>
+    u.id!==user.id &&
+    u.role==='empleado' &&
+    !collabList.find(c=>c.userId===u.id)
+  );
+
+  const addCollab=()=>{
+    if(!selUser)return;
+    const u=candidates.find(x=>x.id===selUser);
+    if(!u)return;
+    setCollabList(prev=>[...prev,{userId:u.id,userName:u.name,role:selRole,dept:u.department||'it'}]);
+    setSelUser('');setSelRole('Colaborador');
+  };
+
+  const removeCollab=(uid)=>setCollabList(prev=>prev.filter(c=>c.userId!==uid));
+
+  const resetForm=()=>{
+    setNm('');setDesc('');setSd('');setEd('');setSt('Activo');
+    setClient('');setConsultType('Estrategia empresarial');setDeliverables('');setFees('');setReportDate('');setLeadConsultant('');
+    setCollabList([]);setSelUser('');setSelRole('Colaborador');
+  };
+
   const doCreate=async()=>{
     if(!nm.trim())return;
     const base={name:nm.trim(),description:desc,startDate:sd,endDate:ed,status:st,ownerId:user.id,ownerName:user.name,department:userDept,createdAt:ts(),progress:0};
-    if(userDept==='it'){
-      Object.assign(base,{techStack,environment,repoUrl});
-    } else {
+    if(userDept==='consultoria'){
       Object.assign(base,{client,consultType,deliverables,fees,reportDate,leadConsultant:leadConsultant||user.name});
     }
-    await window.FB.addProject(base);
-    setShow(false);
-    setNm('');setDesc('');setSd('');setEd('');setSt('Activo');
-    setTechStack('');setEnvironment('Desarrollo');setRepoUrl('');
-    setClient('');setConsultType('Estrategia empresarial');setDeliverables('');setFees('');setReportDate('');setLeadConsultant('');
+    const ref=await window.FB.addProject(base);
+    const pid=ref.key;
+    // send invites to selected collaborators
+    if(pid&&collabList.length>0){
+      await Promise.all(collabList.map(c=>
+        window.FB.addInvite({projectId:pid,projectName:nm.trim(),fromId:user.id,fromName:user.name,toUserId:c.userId,toUserName:c.userName,collabRole:c.role,status:'pending',createdAt:ts()})
+      ));
+    }
+    setShow(false);resetForm();
   };
 
   return(
@@ -674,7 +692,9 @@ const ProjectsList=({user,projects,allTasks,openProject,allCollabs})=>{
       }
 
       {show&&(
-        <Modal title={userDept==='consultoria'?'Nuevo proyecto de Consultoría':'Nuevo proyecto de IT'} onClose={()=>setShow(false)} wide>
+        <Modal title={userDept==='consultoria'?'Nuevo proyecto de Consultoría':'Nuevo proyecto de IT'} onClose={()=>{setShow(false);resetForm();}} wide>
+
+          {/* ── BASE FIELDS ── */}
           <In label="Nombre del proyecto *" value={nm} onChange={e=>setNm(e.target.value)} placeholder={userDept==='consultoria'?'Ej. Estrategia Expansión Acme Corp':'Ej. Migración infraestructura cloud'} autoFocus/>
           <Ta label="Descripción" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Descripción breve (opcional)"/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
@@ -683,36 +703,70 @@ const ProjectsList=({user,projects,allTasks,openProject,allCollabs})=>{
           </div>
           <Se label="Estado" value={st} onChange={e=>setSt(e.target.value)} opts={['Activo','En progreso','Pausado','Finalizado']}/>
 
-          {userDept==='it'?(
-            <>
-              <div style={{margin:'8px 0 14px',borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
-                <div style={{fontSize:'10px',fontWeight:700,color:'#0369a1',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>💻 Datos técnicos</div>
-                <In label="Stack tecnológico" value={techStack} onChange={e=>setTechStack(e.target.value)} placeholder="Ej. React, Node.js, PostgreSQL"/>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-                  <Se label="Entorno" value={environment} onChange={e=>setEnvironment(e.target.value)} opts={['Desarrollo','Pruebas','Staging','Producción']}/>
-                  <In label="URL repositorio" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} placeholder="https://github.com/…"/>
-                </div>
+          {/* ── CONSULTORÍA SPECIFIC ── */}
+          {userDept==='consultoria'&&(
+            <div style={{margin:'8px 0 14px',borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
+              <div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>📊 Datos de consultoría</div>
+              <In label="Cliente / empresa contratante *" value={client} onChange={e=>setClient(e.target.value)} placeholder="Nombre de la empresa cliente"/>
+              <Se label="Tipo de consultoría" value={consultType} onChange={e=>setConsultType(e.target.value)} opts={['Estrategia empresarial','Consultoría financiera','Consultoría legal / compliance','Procesos y operaciones','Transformación organizacional','Due diligence','Otro']}/>
+              <Ta label="Entregables esperados" value={deliverables} onChange={e=>setDeliverables(e.target.value)} placeholder="Ej. Informe ejecutivo, plan de acción, modelo financiero…"/>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                <In label="Honorarios (FCFA)" type="number" value={fees} onChange={e=>setFees(e.target.value)} placeholder="0"/>
+                <In label="Fecha entrega informe" type="date" value={reportDate} onChange={e=>setReportDate(e.target.value)}/>
               </div>
-            </>
-          ):(
-            <>
-              <div style={{margin:'8px 0 14px',borderTop:'1px solid #f3f4f6',paddingTop:'14px'}}>
-                <div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>📊 Datos de consultoría</div>
-                <In label="Cliente / empresa contratante *" value={client} onChange={e=>setClient(e.target.value)} placeholder="Nombre de la empresa cliente"/>
-                <Se label="Tipo de consultoría" value={consultType} onChange={e=>setConsultType(e.target.value)} opts={['Estrategia empresarial','Consultoría financiera','Consultoría legal / compliance','Procesos y operaciones','Transformación organizacional','Due diligence','Otro']}/>
-                <Ta label="Entregables esperados" value={deliverables} onChange={e=>setDeliverables(e.target.value)} placeholder="Ej. Informe ejecutivo, plan de acción, modelo financiero…"/>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-                  <In label="Honorarios (FCFA)" type="number" value={fees} onChange={e=>setFees(e.target.value)} placeholder="0"/>
-                  <In label="Fecha entrega informe" type="date" value={reportDate} onChange={e=>setReportDate(e.target.value)}/>
-                </div>
-                <In label="Consultor responsable" value={leadConsultant} onChange={e=>setLeadConsultant(e.target.value)} placeholder={user.name}/>
-              </div>
-            </>
+              <In label="Consultor responsable" value={leadConsultant} onChange={e=>setLeadConsultant(e.target.value)} placeholder={user.name}/>
+            </div>
           )}
 
+          {/* ── COLLABORATORS ── */}
+          <div style={{borderTop:'1px solid #f3f4f6',paddingTop:'14px',marginTop:'4px'}}>
+            <div style={{fontSize:'10px',fontWeight:700,color:'#4f73f5',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>👥 Colaboradores (opcional)</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:'8px',marginBottom:'10px',alignItems:'flex-end'}}>
+              <Field label="Usuario">
+                <select value={selUser} onChange={e=>setSelUser(e.target.value)} style={{...iSt,cursor:'pointer',appearance:'none'}}>
+                  <option value="">— Seleccionar —</option>
+                  {candidates.map(u=>(
+                    <option key={u.id} value={u.id}>{u.name} · {u.department==='consultoria'?'Consultoría':'IT'}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Rol">
+                <select value={selRole} onChange={e=>setSelRole(e.target.value)} style={{...iSt,cursor:'pointer',appearance:'none'}}>
+                  {['Colaborador','Desarrollador','Diseñador','QA','Analista','Supervisor','Consultor'].map(r=><option key={r}>{r}</option>)}
+                </select>
+              </Field>
+              <div style={{paddingBottom:'0px'}}>
+                <Btn onClick={addCollab} dis={!selUser} sm>+ Añadir</Btn>
+              </div>
+            </div>
+            {collabList.length>0&&(
+              <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
+                {collabList.map(c=>(
+                  <div key={c.userId} style={{display:'flex',alignItems:'center',gap:'10px',background:'#f7f8fa',border:'1px solid #e8eaed',borderRadius:'8px',padding:'8px 12px'}}>
+                    <div style={{width:'26px',height:'26px',borderRadius:'50%',background:'#4f73f5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:700,color:'#fff',flexShrink:0}}>{c.userName[0].toUpperCase()}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:'12px',fontWeight:600,color:'#1a1d23'}}>{c.userName}</div>
+                      <div style={{fontSize:'11px',color:'#9ca3af'}}>{c.dept==='consultoria'?'📊 Consultoría':'💻 IT'}</div>
+                    </div>
+                    <span style={{fontSize:'11px',fontWeight:600,color:'#16a34a',background:'#dcfce7',border:'1px solid #bbf7d0',borderRadius:'99px',padding:'2px 8px'}}>{c.role}</span>
+                    <button onClick={()=>removeCollab(c.userId)}
+                      style={{width:'22px',height:'22px',borderRadius:'50%',border:'none',background:'transparent',color:'#d1d5db',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                      onMouseEnter={e=>e.currentTarget.style.color='#ef4444'}
+                      onMouseLeave={e=>e.currentTarget.style.color='#d1d5db'}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {collabList.length===0&&(
+              <div style={{fontSize:'12px',color:'#9ca3af',fontStyle:'italic',marginBottom:'8px'}}>Sin colaboradores añadidos. Recibirán una invitación al crear el proyecto.</div>
+            )}
+          </div>
+
           <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
-            <Btn v="g" full onClick={()=>setShow(false)}>Cancelar</Btn>
-            <Btn full onClick={doCreate} dis={!nm.trim()||(userDept==='consultoria'&&!client.trim())}>Crear proyecto</Btn>
+            <Btn v="g" full onClick={()=>{setShow(false);resetForm();}}>Cancelar</Btn>
+            <Btn full onClick={doCreate} dis={!nm.trim()||(userDept==='consultoria'&&!client.trim())}>
+              {collabList.length>0?`Crear e invitar a ${collabList.length}`:'Crear proyecto'}
+            </Btn>
           </div>
         </Modal>
       )}
@@ -1163,7 +1217,7 @@ const ProjectDetail=({user,pid,project,onBack,allUsers})=>{
 /* ─ PROJECTS PAGE wrapper ─ */
 const Projects=({user,projects,allTasks,openProj,setOpenProj,allUsers,allCollabs})=>{
   if(openProj) return <ProjectDetail user={user} pid={openProj.id} project={openProj.data} onBack={()=>setOpenProj(null)} allUsers={allUsers}/>;
-  return <ProjectsList user={user} projects={projects} allTasks={allTasks} openProject={(pid,p)=>setOpenProj({id:pid,data:p})} allCollabs={allCollabs}/>;
+  return <ProjectsList user={user} projects={projects} allTasks={allTasks} openProject={(pid,p)=>setOpenProj({id:pid,data:p})} allCollabs={allCollabs} allUsers={allUsers}/>;
 };
 
 /* ─ REPORTS ─ */
