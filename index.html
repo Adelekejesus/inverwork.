@@ -169,7 +169,7 @@ const Se=({label,opts,...p})=><Field label={label}>
 </Field>;
 
 const Btn=({ch,v='p',sm,full,dis,...p})=>{
-  const base={display:'inline-flex',alignItems:'center',justifyContent:'center',gap:'6px',fontFamily:'inherit',fontWeight:700,borderRadius:'8px',cursor:dis?'not-allowed':'pointer',opacity:dis?.4:1,transition:'all .18s cubic-bezier(.16,1,.3,1)',border:'none',fontSize:sm?'12px':'13.5px',padding:sm?'6px 12px':'10px 18px',width:full?'100%':'auto',letterSpacing:'-.01em'};
+  const base={display:'inline-flex',alignItems:'center',justifyContent:'center',gap:'6px',fontFamily:'inherit',fontWeight:700,borderRadius:'8px',cursor:dis?'not-allowed':'pointer',opacity:dis?0.4:1,transition:'all .18s cubic-bezier(.16,1,.3,1)',border:'none',fontSize:sm?'12px':'13.5px',padding:sm?'6px 12px':'10px 18px',width:full?'100%':'auto',letterSpacing:'-.01em'};
   const vs={
     p:{...base,background:'var(--ink)',color:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,.2)'},
     g:{...base,background:'var(--surface)',color:'var(--ink3)',border:'1.5px solid var(--border)'},
@@ -658,7 +658,7 @@ const ProjectsList=({user,projects,allTasks,openProject,allCollabs,allUsers})=>{
   const canSeeProject=(pid,p)=>{
     if(admin)return true;
     if(p.ownerId===user.id)return true;
-    const cols=allCollabs?.[pid]||{};
+    const cols=(allCollabs&&allCollabs[pid])||{};
     return Object.values(cols).some(c=>c.userId===user.id);
   };
 
@@ -837,7 +837,7 @@ const ConsultoriaBanner=({user})=>{
   const KEY='iw_cons_banner_seen';
   const[show,setShow]=useState(false);
   useEffect(()=>{
-    if(user?.department==='consultoria'&&!localStorage.getItem(KEY)) setShow(true);
+    if(user&&user.department==='consultoria'&&!localStorage.getItem(KEY)) setShow(true);
   },[user]);
   const dismiss=()=>{localStorage.setItem(KEY,'1');setShow(false);};
   if(!show)return null;
@@ -877,9 +877,9 @@ const ConsultoriaBanner=({user})=>{
 const InviteBanner=({user,projects})=>{
   const[invites,setInvites]=useState({});
   useEffect(()=>{
-    if(!user?.id)return;
+    if(!user&&user.id)return;
     return window.FB.onInvites(user.id,d=>setInvites(d||{}));
-  },[user?.id]);
+  },[user&&user.id]);
   const pending=Object.entries(invites).filter(([,v])=>v.status==='pending');
   if(!pending.length)return null;
   const[iid,inv]=pending[0];
@@ -923,6 +923,13 @@ const InviteBanner=({user,projects})=>{
       </div>
     </div>
   );
+};
+
+/* ─ TASK STATUS COLORS ─ */
+const TSC={
+  'Pendiente'  :{bg:'#f3f4f6',color:'#6b7280',border:'#e5e7eb'},
+  'En progreso':{bg:'#eff6ff',color:'var(--blue)',border:'#bfdbfe'},
+  'Completado' :{bg:'var(--grn-l)',color:'var(--grn)',border:'#bbf7d0'},
 };
 
 /* ─ TASK CARD with comments ─ */
@@ -1006,7 +1013,7 @@ const TaskCard=({tid,t,pid,user,canEdit,onChangeStatus,onEdit,onRemove})=>{
           {cmtArr.length===0&&<div style={{fontSize:'12px',color:'var(--ink4)',textAlign:'center',padding:'8px 0'}}>Sin comentarios aún.</div>}
           {cmtArr.map(([cid,c])=>(
             <div key={cid} style={{display:'flex',gap:'9px',alignItems:'flex-start'}}>
-              <div style={{width:'24px',height:'24px',borderRadius:'50%',background:'linear-gradient(135deg,var(--blue),var(--purple))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:700,color:'#fff',flexShrink:0}}>{c.userName?.[0]?.toUpperCase()}</div>
+              <div style={{width:'24px',height:'24px',borderRadius:'50%',background:'linear-gradient(135deg,var(--blue),var(--purple))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:700,color:'#fff',flexShrink:0}}>{(c.userName&&c.userName[0]&&c.userName[0].toUpperCase())}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:'flex',gap:'8px',alignItems:'baseline',marginBottom:'2px'}}>
                   <span style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>{c.userName}</span>
@@ -1025,7 +1032,7 @@ const TaskCard=({tid,t,pid,user,canEdit,onChangeStatus,onEdit,onRemove})=>{
               onFocus={e=>e.target.style.borderColor='var(--blue)'}
               onBlur={e=>e.target.style.borderColor='var(--border)'}/>
             <button onClick={send} disabled={!txt.trim()||busy}
-              style={{padding:'7px 13px',background:'var(--blue)',border:'none',borderRadius:'7px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:!txt.trim()||busy?.45:1,transition:'all .13s'}}
+              style={{padding:'7px 13px',background:'var(--blue)',border:'none',borderRadius:'7px',color:'#fff',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:!txt.trim()||busy?0.45:1,transition:'all .13s'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--blue-d)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--blue)'}>
               Enviar
@@ -1056,7 +1063,7 @@ const PriorityBadge=({p})=>{
 
 const COST_CATS=['General','Personal','Infraestructura','Software','Viajes','Consultoría','Marketing','Legal','Otro'];
 
-const ProjectDetail=({user,pid,project:projectProp,onBack,allUsers,isAdmin})=>{
+const ProjectDetail=({user,pid,project,onBack,allUsers,isAdmin})=>{
   const[tasks,setTasks]=useState({});
   const[costs,setCosts]=useState({});
   const[collabs,setCollabs]=useState({});
@@ -1064,11 +1071,11 @@ const ProjectDetail=({user,pid,project:projectProp,onBack,allUsers,isAdmin})=>{
   const[showTask,setShowTask]=useState(false);
   const[showCost,setShowCost]=useState(false);
   const[showInvite,setShowInvite]=useState(false);
-  const[showEditHeader,setShowEditHeader]=useState(false);
+  const[showEdit,setShowEdit]=useState(false);
+  const[editTask,setEditTask]=useState(null);
   const[inviteUser,setInviteUser]=useState('');
   const[inviteRole,setInviteRole]=useState('Colaborador');
-  const[inviteRoleCustom,setInviteRoleCustom]=useState('');
-  const[editTask,setEditTask]=useState(null);
+  const[inviteCustom,setInviteCustom]=useState('');
   const[tName,setTName]=useState('');
   const[tDesc,setTDesc]=useState('');
   const[tSt,setTSt]=useState('Pendiente');
@@ -1078,35 +1085,13 @@ const ProjectDetail=({user,pid,project:projectProp,onBack,allUsers,isAdmin})=>{
   const[cDate,setCDate]=useState('');
   const[cCat,setCCat]=useState('General');
   const[cDest,setCDest]=useState('');
+  const[ehName,setEhName]=useState('');
+  const[ehDesc,setEhDesc]=useState('');
+  const[ehStart,setEhStart]=useState('');
+  const[ehEnd,setEhEnd]=useState('');
+  const[ehPrio,setEhPrio]=useState('Media');
 
-  // Always use live prop — fallback to empty object to avoid crash
-  const project=projectProp||{};
-
-  /* edit header state — initialise from prop, update when project loads */
-  const[ehName,setEhName]=useState(project.name||'');
-  const[ehDesc,setEhDesc]=useState(project.description||'');
-  const[ehStart,setEhStart]=useState(project.startDate||'');
-  const[ehEnd,setEhEnd]=useState(project.endDate||'');
-  const[ehPriority,setEhPriority]=useState(project.priority||'Media');
-
-  // Keep edit-header fields in sync when project updates from Firebase
-  useEffect(()=>{
-    if(projectProp){
-      setEhName(projectProp.name||'');
-      setEhDesc(projectProp.description||'');
-      setEhStart(projectProp.startDate||'');
-      setEhEnd(projectProp.endDate||'');
-      setEhPriority(projectProp.priority||'Media');
-    }
-  },[projectProp?.name,projectProp?.description,projectProp?.startDate,projectProp?.endDate,projectProp?.priority]);
-
-  const collabArr=Object.entries(collabs);
-  const isCollab=collabArr.some(([,c])=>c.userId===user.id);
-  const isOwner=project.ownerId===user.id;
-  const canEdit=isOwner||isCollab;
-  const canEditHeader=isOwner||isAdmin;
-  const color=getColor(pid);
-
+  /* subscribe to live data */
   useEffect(()=>{
     const u1=window.FB.onTasks(pid,d=>setTasks(d||{}));
     const u2=window.FB.onCosts(pid,d=>setCosts(d||{}));
@@ -1114,209 +1099,230 @@ const ProjectDetail=({user,pid,project:projectProp,onBack,allUsers,isAdmin})=>{
     return()=>{u1();u2();u3()};
   },[pid]);
 
-  const v=pct(tasks);
-  const taskArr=Object.entries(tasks);
-  const totalCost=Object.values(costs).reduce((s,c)=>s+(+c.amount||0),0);
+  /* sync edit header fields when project prop arrives/changes */
+  useEffect(()=>{
+    if(!project)return;
+    setEhName(project.name||'');
+    setEhDesc(project.description||'');
+    setEhStart(project.startDate||'');
+    setEhEnd(project.endDate||'');
+    setEhPrio(project.priority||'Media');
+  },[project]);
 
-  // If project data hasn't loaded yet, show spinner
-  if(!project.name) return(
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'300px'}}>
+  /* guard — project may briefly be undefined while Firebase loads */
+  if(!project) return(
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh'}}>
       <div style={{textAlign:'center'}}>
-        <div className="spin" style={{width:'28px',height:'28px',border:'3px solid var(--border)',borderTopColor:'var(--blue)',borderRadius:'50%',margin:'0 auto 12px'}}/>
-        <div style={{fontSize:'13px',color:'var(--ink4)'}}>Cargando proyecto…</div>
+        <div className="spin" style={{width:'32px',height:'32px',border:'3px solid var(--border)',borderTopColor:'var(--blue)',borderRadius:'50%',margin:'0 auto 12px'}}/>
+        <div style={{fontSize:'13px',color:'var(--ink4)'}}>Cargando…</div>
       </div>
     </div>
   );
 
+  const p=project;
+  const color=getColor(pid);
+  const collabArr=Object.entries(collabs);
+  const isOwner=p.ownerId===user.id;
+  const isCollab=collabArr.some(([,c])=>c.userId===user.id);
+  const canEdit=isAdmin||isOwner||isCollab;
+  const canEditHeader=isAdmin||isOwner;
+  const v=pct(tasks);
+  const taskArr=Object.entries(tasks);
+  const totalCost=Object.values(costs).reduce((s,c)=>s+(+c.amount||0),0);
+
+  /* ── actions ── */
   const addTask=async()=>{
     if(!tName.trim())return;
     await window.FB.addTask(pid,{name:tName.trim(),description:tDesc,status:tSt,timeEstimated:tEst,assignedTo:user.id,assignedName:user.name,timeSpent:0,createdAt:ts()});
     setShowTask(false);setTName('');setTDesc('');setTSt('Pendiente');setTEst('');
   };
-
   const changeStatus=async(tid,status)=>{
     await window.FB.updTask(pid,tid,{status});
-    const updated={...tasks,[tid]:{...tasks[tid],status}};
-    await window.FB.updProject(pid,{progress:pct(updated)});
+    const upd={...tasks,[tid]:{...tasks[tid],status}};
+    await window.FB.updProject(pid,{progress:pct(upd)});
   };
-
   const removeTask=async tid=>{
     if(!confirm('¿Eliminar tarea?'))return;
     await window.FB.delTask(pid,tid);
-    const updated={...tasks};delete updated[tid];
-    await window.FB.updProject(pid,{progress:pct(updated)});
+    const upd={...tasks};delete upd[tid];
+    await window.FB.updProject(pid,{progress:pct(upd)});
   };
-
-  const openEditTask=(tid,t)=>{
-    setEditTask({tid,name:t.name,description:t.description||'',status:t.status||'Pendiente',timeEstimated:t.timeEstimated||''});
-  };
-
+  const openEditTask=(tid,t)=>setEditTask({tid,name:t.name,description:t.description||'',status:t.status||'Pendiente',timeEstimated:t.timeEstimated||''});
   const saveEditTask=async()=>{
     if(!editTask.name.trim())return;
     await window.FB.updTask(pid,editTask.tid,{name:editTask.name.trim(),description:editTask.description,status:editTask.status,timeEstimated:editTask.timeEstimated});
-    const updated={...tasks,[editTask.tid]:{...tasks[editTask.tid],...editTask}};
-    await window.FB.updProject(pid,{progress:pct(updated)});
+    const upd={...tasks,[editTask.tid]:{...tasks[editTask.tid],...editTask}};
+    await window.FB.updProject(pid,{progress:pct(upd)});
     setEditTask(null);
   };
-
   const saveHeader=async()=>{
     if(!ehName.trim())return;
-    await window.FB.updProject(pid,{name:ehName.trim(),description:ehDesc,startDate:ehStart,endDate:ehEnd,priority:ehPriority});
-    setShowEditHeader(false);
+    await window.FB.updProject(pid,{name:ehName.trim(),description:ehDesc,startDate:ehStart,endDate:ehEnd,priority:ehPrio});
+    setShowEdit(false);
   };
-
-  const sendInvite=async()=>{
-    if(!inviteUser)return;
-    const toUser=Object.values(allUsers||{}).find(u=>u.id===inviteUser);
-    if(!toUser)return;
-    const finalRole=inviteRole==='_custom'?inviteRoleCustom.trim()||'Colaborador':inviteRole;
-    await window.FB.addInvite({projectId:pid,projectName:project.name,fromId:user.id,fromName:user.name,toUserId:toUser.id,toUserName:toUser.name,collabRole:finalRole,status:'pending',createdAt:ts()});
-    setShowInvite(false);setInviteUser('');setInviteRole('Colaborador');setInviteRoleCustom('');
-  };
-
-  const kickCollab=async(cid)=>{
-    if(!confirm('¿Quitar colaborador del proyecto?'))return;
-    await window.FB.delCollab(pid,cid);
-  };
-
   const addCost=async()=>{
     if(!cDesc.trim()||!cAmt)return;
     await window.FB.addCost(pid,{description:cDesc.trim(),amount:cAmt,date:cDate,category:cCat,destination:cDest.trim()||'General',createdAt:ts()});
     setShowCost(false);setCDesc('');setCAmt('');setCDate('');setCCat('General');setCDest('');
   };
-
-  /* task status colors — TrackingTime style */
-  const TSC={
-    'Pendiente'  :{bg:'#f3f4f6',color:'var(--ink3)',border:'#e5e7eb'},
-    'En progreso':{bg:'#eff6ff',color:'var(--blue)',border:'#bfdbfe'},
-    'Completado' :{bg:'var(--grn-l)',color:'var(--grn)',border:'#bbf7d0'},
+  const sendInvite=async()=>{
+    if(!inviteUser)return;
+    const toUser=Object.values(allUsers||{}).find(u=>u.id===inviteUser);
+    if(!toUser)return;
+    const finalRole=inviteRole==='_custom'?inviteCustom.trim()||'Colaborador':inviteRole;
+    await window.FB.addInvite({projectId:pid,projectName:p.name,fromId:user.id,fromName:user.name,toUserId:toUser.id,toUserName:toUser.name,collabRole:finalRole,status:'pending',createdAt:ts()});
+    setShowInvite(false);setInviteUser('');setInviteRole('Colaborador');setInviteCustom('');
+  };
+  const kickCollab=async cid=>{
+    if(!confirm('¿Quitar colaborador?'))return;
+    await window.FB.delCollab(pid,cid);
   };
 
+  /* ── render ── */
   return(
     <div className="fi">
+
       {/* breadcrumb */}
-      <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'20px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'24px'}}>
         <button onClick={onBack}
-          style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'13px',color:'var(--ink3)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',fontWeight:600,fontSize:'13px'}}
-          onMouseEnter={e=>e.currentTarget.style.color='#1a1d23'} onMouseLeave={e=>e.currentTarget.style.color='#6b7280'}>
-          ← Proyectos
+          style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'13px',fontWeight:600,color:'var(--ink3)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',transition:'color .12s'}}
+          onMouseEnter={e=>e.currentTarget.style.color='var(--ink)'}
+          onMouseLeave={e=>e.currentTarget.style.color='var(--ink3)'}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Proyectos
         </button>
-        <span style={{color:'var(--border2)'}}>/</span>
-        <span style={{fontSize:'13px',color:'var(--ink)',fontWeight:500}}>{project.name}</span>
+        <span style={{color:'var(--border2)',fontSize:'13px'}}>/</span>
+        <span style={{fontSize:'13px',color:'var(--ink)',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'300px'}}>{p.name}</span>
       </div>
 
-      {/* header card */}
-      <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',overflow:'hidden',marginBottom:'20px',boxShadow:'var(--shadow)'}}>
-        <div style={{height:'4px',background:`linear-gradient(90deg,${color},${color}66)`}}/>
-        <div style={{padding:'20px 24px'}}>
-          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'12px'}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginBottom:'4px'}}>
-                <div style={{fontWeight:800,fontSize:'20px',color:'var(--ink)',letterSpacing:'-.02em'}}>{project.name}</div>
-                {project.priority&&<PriorityBadge p={project.priority}/>}
-                <span style={{fontSize:'10px',fontWeight:700,color:'var(--ink4)',fontFamily:'monospace',letterSpacing:'.5px',background:'var(--bg2)',padding:'1px 7px',borderRadius:'5px',border:'1px solid var(--border)'}}>{project.readableId||'#'+pid.slice(-6).toUpperCase()}</span>
+      {/* ── HEADER CARD ── */}
+      <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',overflow:'hidden',marginBottom:'20px'}}>
+        <div style={{height:'4px',background:`linear-gradient(90deg,${color},${color}55)`}}/>
+        <div style={{padding:'20px 22px'}}>
+
+          {/* title row */}
+          <div style={{display:'flex',alignItems:'flex-start',gap:'12px',marginBottom:'14px',flexWrap:'wrap'}}>
+            <div style={{flex:'1 1 200px',minWidth:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginBottom:'5px'}}>
+                <h2 style={{fontSize:'clamp(16px,2.5vw,22px)',fontWeight:800,color:'var(--ink)',letterSpacing:'-.02em',margin:0,lineHeight:1.2}}>{p.name}</h2>
+                {p.priority&&<PriorityBadge p={p.priority}/>}
               </div>
-              {project.description&&<div style={{fontSize:'13px',color:'var(--ink4)'}}>{project.description}</div>}
+              <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+                <span style={{fontSize:'11px',fontWeight:700,color:'var(--ink4)',fontFamily:'monospace',background:'var(--bg2)',padding:'2px 8px',borderRadius:'5px',border:'1px solid var(--border)',letterSpacing:'.5px'}}>{p.readableId||('#'+pid.slice(-6).toUpperCase())}</span>
+                {p.description&&<span style={{fontSize:'12.5px',color:'var(--ink4)'}}>{p.description}</span>}
+              </div>
             </div>
-            <div style={{display:'flex',gap:'6px',alignItems:'center',flexShrink:0}}>
-              <Tag s={project.status}/>
+            <div style={{display:'flex',gap:'6px',alignItems:'center',flexShrink:0,flexWrap:'wrap'}}>
+              <Tag s={p.status}/>
               {canEdit&&(
-                <select value={project.status} onChange={e=>window.FB.updProject(pid,{status:e.target.value})}
-                  style={{...iSt,width:'auto',fontSize:'12px',padding:'5px 10px',cursor:'pointer'}}>
+                <select value={p.status} onChange={e=>window.FB.updProject(pid,{status:e.target.value})}
+                  style={{fontSize:'12px',padding:'6px 10px',border:'1.5px solid var(--border)',borderRadius:'7px',background:'var(--surface)',color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',outline:'none'}}>
                   {['Activo','En progreso','Pausado','Finalizado','Bloqueado'].map(s=><option key={s}>{s}</option>)}
                 </select>
               )}
               {canEditHeader&&(
-                <button onClick={()=>setShowEditHeader(true)}
-                  title="Editar cabecera"
-                  style={{width:'28px',height:'28px',borderRadius:'7px',border:'1.5px solid var(--border)',background:'var(--surface2)',color:'var(--ink3)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}
+                <button onClick={()=>setShowEdit(true)}
+                  style={{width:'32px',height:'32px',borderRadius:'8px',border:'1.5px solid var(--border)',background:'var(--bg2)',color:'var(--ink3)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .14s',flexShrink:0}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--blue)';e.currentTarget.style.color='var(--blue)';e.currentTarget.style.background='var(--blue-l)'}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--ink3)';e.currentTarget.style.background='var(--surface2)'}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--ink3)';e.currentTarget.style.background='var(--bg2)'}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
               )}
             </div>
           </div>
-          <div style={{display:'flex',gap:'16px',fontSize:'12px',color:'var(--ink4)',marginBottom:'16px',flexWrap:'wrap',alignItems:'center'}}>
-            <span>{project.ownerName}</span>
-            {project.startDate&&<span>{dFmt(project.startDate)}</span>}
-            {project.endDate&&<span>{dFmt(project.endDate)}</span>}
-            <span>{taskArr.length} tareas</span>
-            {totalCost>0&&<span style={{fontWeight:700,color:'var(--ink)',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',fontSize:'11.5px'}}>{totalCost.toLocaleString('es-ES')} FCFA</span>}
+
+          {/* meta row */}
+          <div style={{display:'flex',gap:'18px',fontSize:'12.5px',color:'var(--ink4)',marginBottom:'16px',flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{fontWeight:500,color:'var(--ink3)'}}>{p.ownerName}</span>
+            {p.startDate&&<span>{dFmt(p.startDate)}</span>}
+            {p.endDate&&<span>→ {dFmt(p.endDate)}</span>}
+            <span>{taskArr.length} tarea{taskArr.length!==1?'s':''}</span>
+            {totalCost>0&&<span style={{fontWeight:700,color:'var(--ink)',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 9px'}}>{totalCost.toLocaleString('es-ES')} FCFA</span>}
           </div>
-          {/* progress */}
-          <div>
+
+          {/* progress bar */}
+          <div style={{marginBottom:'14px'}}>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',marginBottom:'6px'}}>
-              <span style={{color:'var(--ink3)',fontWeight:500}}>Progreso general</span>
+              <span style={{color:'var(--ink3)',fontWeight:500}}>Progreso</span>
               <span style={{fontWeight:700,color:v===100?'var(--grn)':color}}>{v}%</span>
             </div>
-            <div style={{height:'8px',background:'var(--bg2)',borderRadius:'99px',overflow:'hidden'}}>
+            <div style={{height:'7px',background:'var(--bg2)',borderRadius:'99px',overflow:'hidden'}}>
               <div style={{height:'100%',width:v+'%',background:v===100?'var(--grn)':color,borderRadius:'99px',transition:'width .5s'}}/>
             </div>
           </div>
+
           {/* mini stats */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',marginTop:'16px'}}>
-            {[['Pendiente','#9ca3af',taskArr.filter(([,t])=>t.status==='Pendiente').length],
-              ['En progreso','var(--blue)',taskArr.filter(([,t])=>t.status==='En progreso').length],
-              ['Completado','var(--grn)',taskArr.filter(([,t])=>t.status==='Completado').length]
-            ].map(([s,col,n])=>(
-              <div key={s} style={{background:'var(--surface2)',borderRadius:'8px',padding:'10px 14px',textAlign:'center'}}>
-                <div style={{fontSize:'24px',fontWeight:800,color:col,marginBottom:'2px',letterSpacing:'-.02em'}}>{n}</div>
-                <div style={{fontSize:'11px',color:'var(--ink4)'}}>{s}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'10px'}}>
+            {[['Pendiente','#9ca3af'],['En progreso','var(--blue)'],['Completado','var(--grn)']].map(([s,col])=>(
+              <div key={s} style={{background:'var(--bg2)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+                <div style={{fontSize:'clamp(18px,2.5vw,26px)',fontWeight:800,color:col,letterSpacing:'-.03em',lineHeight:1}}>{taskArr.filter(([,t])=>t.status===s).length}</div>
+                <div style={{fontSize:'11px',color:'var(--ink4)',marginTop:'3px'}}>{s}</div>
               </div>
             ))}
           </div>
+
+          {/* Consultoría extra */}
+          {p.department==='consultoria'&&p.client&&(
+            <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid var(--border)',display:'flex',gap:'16px',flexWrap:'wrap',fontSize:'12.5px'}}>
+              <div><span style={{color:'var(--ink4)'}}>Cliente: </span><span style={{fontWeight:600,color:'var(--ink)'}}>{p.client}</span></div>
+              {p.consultType&&<div><span style={{color:'var(--ink4)'}}>Tipo: </span><span style={{color:'var(--ink3)'}}>{p.consultType}</span></div>}
+              {p.fees&&<div><span style={{color:'var(--ink4)'}}>Honorarios: </span><span style={{fontWeight:700,color:'var(--cons)'}}>{Number(p.fees).toLocaleString('es-ES')} FCFA</span></div>}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* tabs */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #e8eaed',marginBottom:'16px'}}>
-        <div style={{display:'flex'}}>
-          {[['tasks','Tareas'],['costs','Costes'],['collabs','Equipo']].map(([id,lbl])=>(
-            <button key={id} onClick={()=>setTab(id)}
-              style={{padding:'9px 16px',fontSize:'13px',fontWeight:600,border:'none',borderBottom:`2px solid ${tab===id?color:'transparent'}`,marginBottom:'-1px',color:tab===id?color:'var(--ink4)',background:'transparent',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
-              {lbl}
-              {id==='tasks'?<span style={{marginLeft:'5px',fontSize:'11px',background:tab==='tasks'?color:'#f3f4f6',color:tab==='tasks'?'#fff':'#9ca3af',borderRadius:'99px',padding:'1px 6px'}}>{taskArr.length}</span>:''}
-              {id==='costs'&&totalCost>0?<span style={{marginLeft:'5px',fontSize:'11px',color:'var(--ink4)'}}>${Math.round(totalCost)}</span>:''}
-              {id==='collabs'?<span style={{marginLeft:'5px',fontSize:'11px',background:tab==='collabs'?color:'#f3f4f6',color:tab==='collabs'?'#fff':'#9ca3af',borderRadius:'99px',padding:'1px 6px'}}>{collabArr.length+1}</span>:''}
-            </button>
-          ))}
+      {/* ── TABS ── */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',marginBottom:'18px',flexWrap:'wrap',gap:'8px'}}>
+        <div style={{display:'flex',gap:'2px'}}>
+          {[['tasks','Tareas'],['costs','Costes'],['collabs','Equipo']].map(([id,lbl])=>{
+            const active=tab===id;
+            const count=id==='tasks'?taskArr.length:id==='costs'?Object.keys(costs).length:collabArr.length+1;
+            return(
+              <button key={id} onClick={()=>setTab(id)}
+                style={{padding:'8px 14px',fontSize:'13px',fontWeight:active?700:500,color:active?'var(--ink)':'var(--ink4)',background:'none',border:'none',borderBottom:`2px solid ${active?'var(--ink)':'transparent'}`,cursor:'pointer',fontFamily:'inherit',transition:'all .14s',display:'flex',alignItems:'center',gap:'5px',marginBottom:'-1px'}}>
+                {lbl}
+                <span style={{fontSize:'10.5px',fontWeight:700,color:active?'var(--surface)':'var(--ink4)',background:active?'var(--ink)':'var(--bg2)',borderRadius:'99px',padding:'1px 6px',minWidth:'18px',textAlign:'center'}}>{count}</span>
+              </button>
+            );
+          })}
         </div>
-        <div style={{paddingBottom:'8px',display:'flex',gap:'6px'}}>
+        <div style={{display:'flex',gap:'6px',paddingBottom:'8px'}}>
           {tab==='tasks'&&canEdit&&<Btn sm onClick={()=>setShowTask(true)}>+ Tarea</Btn>}
           {tab==='costs'&&canEdit&&<Btn sm onClick={()=>setShowCost(true)}>+ Coste</Btn>}
-          {tab==='collabs'&&project.ownerId===user.id&&<Btn sm onClick={()=>setShowInvite(true)}>+ Invitar</Btn>}
+          {tab==='collabs'&&(isOwner||isAdmin)&&<Btn sm onClick={()=>setShowInvite(true)}>+ Invitar</Btn>}
         </div>
       </div>
 
-      {/* TASKS */}
-      {tab==='tasks'&&(taskArr.length===0
-        ?<div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'48px',textAlign:'center'}}>
-          
-          <div style={{fontWeight:600,color:'var(--ink)',marginBottom:'4px'}}>Sin tareas</div>
-          <div style={{fontSize:'13px',color:'var(--ink4)'}}>{canEdit?'Añade la primera tarea.':'No hay tareas.'}</div>
-        </div>
-        :<div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-          {taskArr.map(([tid,t])=>(
-            <TaskCard key={tid} tid={tid} t={t} pid={pid} user={user} canEdit={canEdit}
-              onChangeStatus={changeStatus} onEdit={openEditTask} onRemove={removeTask}/>
-          ))}
-        </div>
+      {/* ── TASKS ── */}
+      {tab==='tasks'&&(
+        taskArr.length===0
+          ?<div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'40px',textAlign:'center'}}>
+            <div style={{color:'var(--ink4)',fontSize:'13px'}}>{canEdit?'Sin tareas aún. Pulsa "+ Tarea" para empezar.':'No hay tareas.'}</div>
+           </div>
+          :<div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+            {taskArr.map(([tid,t])=>(
+              <TaskCard key={tid} tid={tid} t={t} pid={pid} user={user} canEdit={canEdit}
+                onChangeStatus={changeStatus} onEdit={openEditTask} onRemove={removeTask}/>
+            ))}
+           </div>
       )}
 
-      {/* COSTS */}
+      {/* ── COSTS ── */}
       {tab==='costs'&&(
         <>
-          {/* running total banner */}
-          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'14px 20px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between',boxShadow:'var(--shadow)'}}>
+          {/* total banner */}
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'16px 20px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px'}}>
             <div>
-              <div style={{fontSize:'10.5px',fontWeight:700,color:'var(--ink4)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Total acumulado</div>
-              <div style={{fontWeight:800,fontSize:'26px',color:totalCost>0?'var(--ink)':'var(--ink4)',letterSpacing:'-.03em'}}>{totalCost>0?totalCost.toLocaleString('es-ES')+' FCFA':'—'}</div>
+              <div style={{fontSize:'10.5px',fontWeight:700,color:'var(--ink4)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Total acumulado</div>
+              <div style={{fontSize:'clamp(22px,3vw,28px)',fontWeight:800,color:totalCost>0?'var(--ink)':'var(--ink4)',letterSpacing:'-.03em',lineHeight:1}}>{totalCost>0?totalCost.toLocaleString('es-ES')+' FCFA':'—'}</div>
             </div>
             {Object.keys(costs).length>0&&(
               <div style={{display:'flex',flexDirection:'column',gap:'3px',alignItems:'flex-end'}}>
-                {Object.entries(Object.values(costs).reduce((acc,c)=>{acc[c.category||'General']=(acc[c.category||'General']||0)+(+c.amount||0);return acc;},{})).map(([cat,sum])=>(
-                  <div key={cat} style={{fontSize:'11px',color:'var(--ink3)'}}>
+                {Object.entries(
+                  Object.values(costs).reduce((acc,c)=>{const k=c.category||'General';acc[k]=(acc[k]||0)+(+c.amount||0);return acc;},{})
+                ).map(([cat,sum])=>(
+                  <div key={cat} style={{fontSize:'11.5px',color:'var(--ink3)'}}>
                     <span style={{color:'var(--ink4)'}}>{cat}:</span> <b style={{color:'var(--ink)'}}>{sum.toLocaleString('es-ES')}</b>
                   </div>
                 ))}
@@ -1324,185 +1330,176 @@ const ProjectDetail=({user,pid,project:projectProp,onBack,allUsers,isAdmin})=>{
             )}
           </div>
           {Object.keys(costs).length===0
-            ?<div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'48px',textAlign:'center'}}>
-              
-              <div style={{fontWeight:600,color:'var(--ink)',marginBottom:'4px'}}>Sin costes</div>
-              <div style={{fontSize:'13px',color:'var(--ink4)'}}>{canEdit?'Registra el primer coste.':'No hay costes registrados.'}</div>
-            </div>
+            ?<div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'40px',textAlign:'center',color:'var(--ink4)',fontSize:'13px'}}>{canEdit?'Sin costes. Pulsa "+ Coste" para registrar el primero.':'No hay costes.'}</div>
             :<div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               {Object.entries(costs).map(([cid,co])=>(
-                <div key={cid} style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'13px 16px',display:'flex',alignItems:'center',gap:'12px',boxShadow:'var(--shadow)'}}>
-                  <div style={{width:'32px',height:'32px',borderRadius:'8px',background:'var(--bg2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,color:'var(--ink)',fontSize:'13.5px'}}>{co.description}</div>
-                    <div style={{display:'flex',gap:'6px',alignItems:'center',marginTop:'3px',flexWrap:'wrap'}}>
-                      {co.category&&<span style={{fontSize:'10px',fontWeight:700,color:'var(--ink3)',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'5px',padding:'1px 6px'}}>{co.category}</span>}
-                      {co.destination&&co.destination!=='General'&&<span style={{fontSize:'10px',fontWeight:700,color:'var(--blue)',background:'var(--blue-l)',border:'1px solid #bfdbfe',borderRadius:'5px',padding:'1px 6px'}}>→ {co.destination}</span>}
-                      {co.date&&<span style={{fontSize:'11px',color:'var(--ink4)'}}>{dFmt(co.date)}</span>}
+                <div key={cid} style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'13px 16px',display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
+                  <div style={{flex:'1 1 140px',minWidth:0}}>
+                    <div style={{fontWeight:600,color:'var(--ink)',fontSize:'13.5px',marginBottom:'4px'}}>{co.description}</div>
+                    <div style={{display:'flex',gap:'6px',alignItems:'center',flexWrap:'wrap'}}>
+                      {co.category&&<span style={{fontSize:'10.5px',fontWeight:700,color:'var(--ink3)',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'5px',padding:'1px 7px'}}>{co.category}</span>}
+                      {co.destination&&co.destination!=='General'&&<span style={{fontSize:'10.5px',fontWeight:700,color:'var(--blue)',background:'var(--blue-l)',border:'1px solid #bfdbfe',borderRadius:'5px',padding:'1px 7px'}}>→ {co.destination}</span>}
+                      {co.date&&<span style={{fontSize:'11.5px',color:'var(--ink4)'}}>{dFmt(co.date)}</span>}
                     </div>
                   </div>
-                  <span style={{fontWeight:800,fontSize:'16px',color:'var(--ink)',flexShrink:0}}>{(+co.amount).toLocaleString('es-ES')} FCFA</span>
+                  <span style={{fontWeight:800,fontSize:'15px',color:'var(--ink)',flexShrink:0}}>{(+co.amount).toLocaleString('es-ES')} FCFA</span>
                   {canEdit&&<button onClick={()=>window.FB.delCost(pid,cid)}
-                    style={{width:'26px',height:'26px',borderRadius:'6px',border:'1.5px solid var(--border)',background:'transparent',color:'var(--border2)',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',flexShrink:0}}
+                    style={{width:'26px',height:'26px',borderRadius:'6px',border:'1.5px solid var(--border)',background:'transparent',color:'var(--border2)',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .14s',flexShrink:0}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--border2)';e.currentTarget.style.background='transparent'}}>×</button>}
                 </div>
               ))}
-            </div>
+             </div>
           }
         </>
       )}
 
-      {/* COLLABORATORS TAB */}
+      {/* ── COLLABS ── */}
       {tab==='collabs'&&(
         <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+          {/* owner */}
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
-            <div style={{width:'34px',height:'34px',borderRadius:'50%',background:'linear-gradient(135deg,var(--blue),#7c9bff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'#fff',flexShrink:0}}>{project.ownerName?.[0]?.toUpperCase()}</div>
+            <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'linear-gradient(135deg,var(--blue),#7c9bff)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'#fff',flexShrink:0}}>{(p.ownerName||'?')[0].toUpperCase()}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:600,fontSize:'13px',color:'var(--ink)'}}>{project.ownerName}</div>
+              <div style={{fontWeight:600,fontSize:'13px',color:'var(--ink)'}}>{p.ownerName}</div>
               <div style={{fontSize:'11px',color:'var(--ink4)',marginTop:'1px'}}>Creador del proyecto</div>
             </div>
-            <span style={{fontSize:'11px',fontWeight:600,color:'var(--blue)',background:'var(--blue-l)',border:'1px solid #c7d2fd',borderRadius:'99px',padding:'3px 10px'}}>Propietario</span>
+            <span style={{fontSize:'11px',fontWeight:700,color:'var(--blue)',background:'var(--blue-l)',border:'1px solid #c7d2fd',borderRadius:'99px',padding:'3px 10px',flexShrink:0}}>Propietario</span>
           </div>
+          {/* collaborators */}
           {collabArr.map(([cid,c])=>(
             <div key={cid} style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px'}}>
-              <div style={{width:'34px',height:'34px',borderRadius:'50%',background:'var(--bg2)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'var(--ink3)',flexShrink:0}}>{c.userName?.[0]?.toUpperCase()}</div>
+              <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg2)',border:'1.5px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'var(--ink3)',flexShrink:0}}>{(c.userName||'?')[0].toUpperCase()}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:'13px',color:'var(--ink)'}}>{c.userName}</div>
-                <div style={{fontSize:'11px',color:'var(--ink4)',marginTop:'1px'}}>Unido {dFmt(c.joinedAt)}</div>
+                <div style={{fontSize:'11px',color:'var(--ink4)',marginTop:'1px'}}>{c.role||'Colaborador'} · {c.joinedAt?dFmt(c.joinedAt):''}</div>
               </div>
-              <span style={{fontSize:'11px',fontWeight:600,color:'var(--grn)',background:'var(--grn-l)',border:'1px solid #bbf7d0',borderRadius:'99px',padding:'3px 10px'}}>{c.role||'Colaborador'}</span>
-              {(isOwner||isAdmin)&&(
-                <button onClick={()=>kickCollab(cid)}
-                  style={{width:'26px',height:'26px',borderRadius:'6px',border:'1.5px solid var(--border)',background:'transparent',color:'var(--border2)',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',flexShrink:0}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--border2)';e.currentTarget.style.background='transparent'}}>×</button>
-              )}
+              {(isOwner||isAdmin)&&<button onClick={()=>kickCollab(cid)}
+                style={{width:'26px',height:'26px',borderRadius:'6px',border:'1.5px solid var(--border)',background:'transparent',color:'var(--border2)',fontSize:'14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .14s',flexShrink:0}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='#fca5a5';e.currentTarget.style.color='#ef4444';e.currentTarget.style.background='#fff5f5'}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--border2)';e.currentTarget.style.background='transparent'}}>×</button>}
             </div>
           ))}
-          {collabArr.length===0&&(
-            <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',padding:'36px',textAlign:'center'}}>
-              <div style={{color:'var(--ink4)',fontSize:'13px'}}>{isOwner?'Sin colaboradores. Pulsa "+ Invitar" para añadir.':'No hay colaboradores en este proyecto.'}</div>
-            </div>
-          )}
+          {collabArr.length===0&&<div style={{padding:'24px',textAlign:'center',fontSize:'13px',color:'var(--ink4)'}}>{isOwner?'Sin colaboradores. Usa "+ Invitar" para añadir.':'No hay colaboradores.'}</div>}
         </div>
       )}
 
-      {/* EDIT HEADER MODAL */}
-      {showEditHeader&&(
-        <Modal title="Editar cabecera del proyecto" onClose={()=>setShowEditHeader(false)}>
-          <In label="Nombre del proyecto *" value={ehName} onChange={e=>setEhName(e.target.value)} autoFocus/>
-          <Ta label="Descripción" value={ehDesc} onChange={e=>setEhDesc(e.target.value)} placeholder="Descripción opcional"/>
+      {/* ── EDIT HEADER MODAL ── */}
+      {showEdit&&(
+        <Modal title="Editar proyecto" onClose={()=>setShowEdit(false)}>
+          <In label="Nombre *" value={ehName} onChange={e=>setEhName(e.target.value)} autoFocus/>
+          <Ta label="Descripción" value={ehDesc} onChange={e=>setEhDesc(e.target.value)}/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
             <In label="Fecha inicio" type="date" value={ehStart} onChange={e=>setEhStart(e.target.value)}/>
-            <In label="Fecha fin est." type="date" value={ehEnd} onChange={e=>setEhEnd(e.target.value)}/>
+            <In label="Fecha fin" type="date" value={ehEnd} onChange={e=>setEhEnd(e.target.value)}/>
           </div>
           <Field label="Prioridad">
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'6px'}}>
-              {Object.entries(PRIORITY).map(([p,c])=>(
-                <button key={p} onClick={()=>setEhPriority(p)}
-                  style={{padding:'8px 4px',borderRadius:'7px',border:`1.5px solid ${ehPriority===p?c.color:c.border}`,background:ehPriority===p?c.bg:'var(--surface)',color:ehPriority===p?c.color:'var(--ink4)',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .13s',textAlign:'center'}}>
-                  {p}
+              {Object.entries(PRIORITY).map(([pr,c])=>(
+                <button key={pr} onClick={()=>setEhPrio(pr)}
+                  style={{padding:'8px 4px',borderRadius:'7px',border:`1.5px solid ${ehPrio===pr?c.color:c.border}`,background:ehPrio===pr?c.bg:'var(--surface)',color:ehPrio===pr?c.color:'var(--ink4)',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .13s',textAlign:'center'}}>
+                  {pr}
                 </button>
               ))}
             </div>
           </Field>
           <div style={{display:'flex',gap:'10px',paddingTop:'4px'}}>
-            <Btn v="g" full onClick={()=>setShowEditHeader(false)}>Cancelar</Btn>
+            <Btn v="g" full onClick={()=>setShowEdit(false)}>Cancelar</Btn>
             <Btn full onClick={saveHeader} dis={!ehName.trim()}>Guardar</Btn>
           </div>
         </Modal>
       )}
 
-      {/* EDIT TASK MODAL */}
-      {editTask&&(
-        <Modal title="Editar tarea" onClose={()=>setEditTask(null)}>
-          <In label="Nombre *" value={editTask.name} onChange={e=>setEditTask(p=>({...p,name:e.target.value}))} placeholder="Nombre de la tarea" autoFocus/>
-          <Ta label="Descripción" value={editTask.description} onChange={e=>setEditTask(p=>({...p,description:e.target.value}))} placeholder="Descripción opcional"/>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-            <In label="Tiempo estimado (h)" type="number" value={editTask.timeEstimated} onChange={e=>setEditTask(p=>({...p,timeEstimated:e.target.value}))} placeholder="0"/>
-            <Se label="Estado" value={editTask.status} onChange={e=>setEditTask(p=>({...p,status:e.target.value}))} opts={['Pendiente','En progreso','Completado']}/>
-          </div>
-          <Field label="Asignado a">
-            <select value={editTask.assignedTo||''} onChange={e=>{const u=[{id:user.id,name:user.name},...collabArr.map(([,c])=>({id:c.userId,name:c.userName}))].find(x=>x.id===e.target.value);setEditTask(p=>({...p,assignedTo:e.target.value,assignedName:u?.name||''}))}} style={{...iSt,cursor:'pointer'}}>
-              <option value={user.id}>{user.name} (tú)</option>
-              {collabArr.map(([,c])=><option key={c.userId} value={c.userId}>{c.userName} · {c.role}</option>)}
-            </select>
-          </Field>
-          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
-            <Btn v="g" full onClick={()=>setEditTask(null)}>Cancelar</Btn>
-            <Btn full onClick={saveEditTask} dis={!editTask.name.trim()}>Guardar cambios</Btn>
-          </div>
-        </Modal>
-      )}
-
-      {/* INVITE MODAL */}
+      {/* ── INVITE MODAL ── */}
       {showInvite&&(
-        <Modal title="Invitar colaborador" sub="Recibirá notificación para aceptar o rechazar." onClose={()=>setShowInvite(false)}>
+        <Modal title="Invitar colaborador" onClose={()=>setShowInvite(false)}>
           <Field label="Usuario">
             <select value={inviteUser} onChange={e=>setInviteUser(e.target.value)} style={{...iSt,cursor:'pointer'}}>
-              <option value="">— Seleccionar empleado —</option>
+              <option value="">— Seleccionar —</option>
               {Object.values(allUsers||{}).filter(u=>u.id!==user.id&&u.role==='empleado'&&!collabArr.some(([,c])=>c.userId===u.id)).map(u=>(
-                <option key={u.id} value={u.id}>{u.name} · {u.department==='consultoria'?'Consultoría':'IT'}</option>
+                <option key={u.id} value={u.id}>{u.name} ({u.department||'IT'})</option>
               ))}
             </select>
           </Field>
           <Field label="Rol en el proyecto">
             <select value={inviteRole} onChange={e=>setInviteRole(e.target.value)} style={{...iSt,cursor:'pointer'}}>
-              {['Colaborador','Desarrollador','Diseñador','QA','Analista','Supervisor','Consultor','Otro (escribir)'].map(r=>(
-                <option key={r} value={r==='Otro (escribir)'?'_custom':r}>{r}</option>
+              {['Colaborador','Desarrollador','Diseñador','QA','Analista','Supervisor','Consultor','_custom'].map(r=>(
+                <option key={r} value={r}>{r==='_custom'?'Personalizado…':r}</option>
               ))}
             </select>
           </Field>
           {inviteRole==='_custom'&&(
-            <In label="Escribe el rol *" value={inviteRoleCustom} onChange={e=>setInviteRoleCustom(e.target.value)} placeholder="Ej. Arquitecto de soluciones"/>
+            <In label="Escribe el rol" value={inviteCustom} onChange={e=>setInviteCustom(e.target.value)} placeholder="Ej. Arquitecto de soluciones"/>
           )}
           <div style={{display:'flex',gap:'10px',paddingTop:'4px'}}>
             <Btn v="g" full onClick={()=>setShowInvite(false)}>Cancelar</Btn>
-            <Btn full onClick={()=>sendInvite()} dis={!inviteUser||(inviteRole==='_custom'&&!inviteRoleCustom.trim())}>Enviar invitación</Btn>
+            <Btn full onClick={sendInvite} dis={!inviteUser||(inviteRole==='_custom'&&!inviteCustom.trim())}>Enviar invitación</Btn>
           </div>
         </Modal>
       )}
 
-      {/* TASK MODAL */}
+      {/* ── NEW TASK MODAL ── */}
       {showTask&&(
         <Modal title="Nueva tarea" onClose={()=>setShowTask(false)}>
           <In label="Nombre *" value={tName} onChange={e=>setTName(e.target.value)} placeholder="Nombre de la tarea" autoFocus/>
           <Ta label="Descripción" value={tDesc} onChange={e=>setTDesc(e.target.value)} placeholder="Descripción opcional"/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-            <In label="Tiempo estimado (h)" type="number" value={tEst} onChange={e=>setTEst(e.target.value)} placeholder="0"/>
+            <In label="Horas estimadas" type="number" value={tEst} onChange={e=>setTEst(e.target.value)} placeholder="0"/>
             <Se label="Estado inicial" value={tSt} onChange={e=>setTSt(e.target.value)} opts={['Pendiente','En progreso','Completado']}/>
           </div>
-          <div style={{display:'flex',gap:'10px',paddingTop:'6px'}}>
+          <div style={{display:'flex',gap:'10px',paddingTop:'4px'}}>
             <Btn v="g" full onClick={()=>setShowTask(false)}>Cancelar</Btn>
-            <Btn full onClick={addTask} dis={!tName.trim()}>Guardar tarea</Btn>
+            <Btn full onClick={addTask} dis={!tName.trim()}>Guardar</Btn>
           </div>
         </Modal>
       )}
 
-      {/* COST MODAL */}
+      {/* ── EDIT TASK MODAL ── */}
+      {editTask&&(
+        <Modal title="Editar tarea" onClose={()=>setEditTask(null)}>
+          <In label="Nombre *" value={editTask.name} onChange={e=>setEditTask(t=>({...t,name:e.target.value}))} autoFocus/>
+          <Ta label="Descripción" value={editTask.description} onChange={e=>setEditTask(t=>({...t,description:e.target.value}))}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+            <In label="Horas estimadas" type="number" value={editTask.timeEstimated} onChange={e=>setEditTask(t=>({...t,timeEstimated:e.target.value}))} placeholder="0"/>
+            <Se label="Estado" value={editTask.status} onChange={e=>setEditTask(t=>({...t,status:e.target.value}))} opts={['Pendiente','En progreso','Completado']}/>
+          </div>
+          <Field label="Asignar a">
+            <select value={editTask.assignedTo||''} onChange={e=>{const u=[{id:user.id,name:user.name},...collabArr.map(([,c])=>({id:c.userId,name:c.userName}))].find(x=>x.id===e.target.value);setEditTask(t=>({...t,assignedTo:e.target.value,assignedName:u?u.name:''}));}} style={{...iSt,cursor:'pointer'}}>
+              <option value={user.id}>{user.name} (yo)</option>
+              {collabArr.map(([,c])=><option key={c.userId} value={c.userId}>{c.userName} · {c.role}</option>)}
+            </select>
+          </Field>
+          <div style={{display:'flex',gap:'10px',paddingTop:'4px'}}>
+            <Btn v="g" full onClick={()=>setEditTask(null)}>Cancelar</Btn>
+            <Btn full onClick={saveEditTask} dis={!editTask.name.trim()}>Guardar</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── NEW COST MODAL ── */}
       {showCost&&(
         <Modal title="Añadir coste" onClose={()=>setShowCost(false)}>
-          <In label="Concepto *" value={cDesc} onChange={e=>setCDesc(e.target.value)} placeholder="Ej. Licencia software, viaje, consultor…" autoFocus/>
+          <In label="Concepto *" value={cDesc} onChange={e=>setCDesc(e.target.value)} placeholder="Ej. Licencia, viaje, consultor…" autoFocus/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
             <In label="Importe (FCFA) *" type="number" value={cAmt} onChange={e=>setCAmt(e.target.value)} placeholder="0"/>
             <In label="Fecha" type="date" value={cDate} onChange={e=>setCDate(e.target.value)}/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
             <Se label="Categoría" value={cCat} onChange={e=>setCCat(e.target.value)} opts={COST_CATS}/>
-            <In label="Destino / Área" value={cDest} onChange={e=>setCDest(e.target.value)} placeholder="Ej. Frontend, Fase 2, Cliente…"/>
+            <In label="Destino / Área" value={cDest} onChange={e=>setCDest(e.target.value)} placeholder="Ej. Frontend, Fase 2…"/>
           </div>
           <div style={{display:'flex',gap:'10px',paddingTop:'4px'}}>
             <Btn v="g" full onClick={()=>setShowCost(false)}>Cancelar</Btn>
-            <Btn full onClick={addCost} dis={!cDesc.trim()||!cAmt}>Añadir coste</Btn>
+            <Btn full onClick={addCost} dis={!cDesc.trim()||!cAmt}>Añadir</Btn>
           </div>
         </Modal>
       )}
+
     </div>
   );
 };
+
+
 
 /* ─ PIPELINE KANBAN — Consultoría only ─ */
 const PIPELINE_COLS=[
@@ -1649,7 +1646,7 @@ const Reports=({user,projects,reports})=>{
 
   const create=async()=>{
     if(!fDate)return;
-    await window.FB.addReport({date:fDate,projectId:fPid,projectName:projects[fPid]?.name||'',hoursWorked:fH,tasks:fTasks,problems:fProb,notes:fNotes,userId:user.id,userName:user.name,createdAt:ts()});
+    await window.FB.addReport({date:fDate,projectId:fPid,projectName:(projects[fPid]&&projects[fPid].name)||'',hoursWorked:fH,tasks:fTasks,problems:fProb,notes:fNotes,userId:user.id,userName:user.name,createdAt:ts()});
     setShow(false);setFDate(new Date().toISOString().slice(0,10));setFPid('');setFH('');setFTasks('');setFProb('');setFNotes('');
   };
 
@@ -1768,7 +1765,7 @@ const Team=({user,projects,allTasks,allCollabs})=>{
   const teamProjects=Object.entries(projects).filter(([pid,p])=>{
     if(p.ownerId===user.id)return false;
     const sameDept=(p.department||'it')===userDept;
-    const isCollab=Object.values(allCollabs?.[pid]||{}).some(c=>c.userId===user.id);
+    const isCollab=Object.values((allCollabs&&allCollabs[pid])||{}).some(c=>c.userId===user.id);
     return sameDept||isCollab;
   });
   return(
@@ -1782,7 +1779,7 @@ const Team=({user,projects,allTasks,allCollabs})=>{
         :<div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',border:'1.5px solid var(--border)',overflow:'hidden',boxShadow:'var(--shadow)'}}>
           {teamProjects.map(([pid,p],i)=>{
             const v=pct(allTasks[pid]||{});
-            const isCollab=Object.values(allCollabs?.[pid]||{}).some(c=>c.userId===user.id);
+            const isCollab=Object.values((allCollabs&&allCollabs[pid])||{}).some(c=>c.userId===user.id);
             return(
               <div key={pid} style={{display:'flex',alignItems:'center',gap:'14px',padding:'13px 18px',borderTop:i>0?'1px solid var(--border)':'none'}}>
                 <div style={{width:'4px',height:'36px',borderRadius:'99px',background:getColor(pid),flexShrink:0}}/>
@@ -1964,7 +1961,7 @@ const UserMindMap=({u,projects,allTasks,allCollabs,onClose})=>{
     // Small delay so modal is fully rendered and canvas has dimensions
     const timer=setTimeout(()=>{
       const cv=cvRef.current;if(!cv)return;
-      const W=cv.parentElement?.offsetWidth||700;
+      const W=(cv.parentElement&&cv.parentElement.offsetWidth)||700;
       const H=500;
       cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';
       const ctx=cv.getContext('2d');ctx.scale(2,2);
@@ -2037,10 +2034,10 @@ const UserMindMap=({u,projects,allTasks,allCollabs,onClose})=>{
 
       // tasks around each project
       const projTasks=Object.entries(allTasks[pid]||{}).filter(([,t])=>t.assignedTo===u.id||isOwner).slice(0,5);
-      const projCosts=Object.values(allCollabs?.[pid]||{}); // just a count placeholder
+      const projCosts=Object.values((allCollabs&&allCollabs[pid])||{}); // just a count placeholder
       const allBranches=[
         ...projTasks.map(([tid,t])=>({type:'task',label:t.name,status:t.status,tid})),
-        ...(!isOwner?[]:[{type:'cost_summary',label:`${Object.keys(allCollabs?.[pid]||{}).length} colaboradores`}]),
+        ...(!isOwner?[]:[{type:'cost_summary',label:`${Object.keys((allCollabs&&allCollabs[pid])||{}).length} colaboradores`}]),
       ];
 
       allBranches.forEach(({type,label,status},bi)=>{
@@ -2064,7 +2061,7 @@ const UserMindMap=({u,projects,allTasks,allCollabs,onClose})=>{
 
       // hours bubble
       const hrs=Object.values(allTasks[pid]||{}).reduce((s,t)=>s+(+t.timeSpent||0)/60,0);
-      const totalPCost=Object.values(allCollabs?.[pid]||{}).length; // placeholder
+      const totalPCost=Object.values((allCollabs&&allCollabs[pid])||{}).length; // placeholder
       if(hrs>0){
         const hx=px+Math.cos(angle+0.5)*42,hy=py+Math.sin(angle+0.5)*42;
         ctx.font=`700 9px monospace`;
@@ -2101,7 +2098,7 @@ const UserMindMap=({u,projects,allTasks,allCollabs,onClose})=>{
           <div style={{display:'flex',gap:'16px',fontSize:'12px',color:'var(--ink3)',flexShrink:0}}>
             {[
               ['Tareas',Object.values(allTasks||{}).flatMap(t=>Object.values(t||{})).filter(t=>t.assignedTo===u.id).length,'var(--grn)'],
-              ['Costes',allProjects.reduce((s,{pid})=>s+Object.values(allCollabs?.[pid]||{}).length,0),'var(--amber)'],
+              ['Costes',allProjects.reduce((s,{pid})=>s+Object.values((allCollabs&&allCollabs[pid])||{}).length,0),'var(--amber)'],
             ].map(([l,n,c])=>(
               <div key={l} style={{textAlign:'center'}}>
                 <div style={{fontSize:'20px',fontWeight:800,color:c,letterSpacing:'-.03em'}}>{n}</div>
@@ -2145,7 +2142,7 @@ const Users=({users,projects,allTasks,allCollabs})=>{
     return all.map(u=>{
       const owned=Object.entries(projects||{}).filter(([,p])=>p.ownerId===u.id);
       const asCollab=Object.entries(allCollabs||{}).flatMap(([pid,cols])=>
-        Object.values(cols||{}).filter(c=>c.userId===u.id).map(c=>({pid,role:c.role,pName:(projects||{})[pid]?.name||'—',pDept:(projects||{})[pid]?.department||'it'}))
+        Object.values(cols||{}).filter(c=>c.userId===u.id).map(c=>({pid,role:c.role,pName:((projects||{})[pid]&&(projects||{})[pid].name)||'—',pDept:((projects||{})[pid]&&(projects||{})[pid].department)||'it'}))
       );
       const myTasks=Object.entries(allTasks||{}).flatMap(([pid,tmap])=>
         Object.entries(tmap||{}).filter(([,t])=>t.assignedTo===u.id).map(([tid,t])=>({tid,name:t.name,status:t.status,pid}))
@@ -2278,7 +2275,7 @@ const Users=({users,projects,allTasks,allCollabs})=>{
                 </select>
               )}
               {/* role history badge */}
-              {u.roleHistory?.length>0&&(
+              {(u.roleHistory&&u.roleHistory.length>0)&&(
                 <span title={u.roleHistory.map(h=>`${h.from}→${h.to} (${new Date(h.at).toLocaleDateString('es-ES')})`).join('\n')}
                   style={{fontSize:'10px',fontWeight:700,color:'#92400e',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'5px',padding:'2px 6px',cursor:'help'}}>
                   {u.roleHistory.length} cambio{u.roleHistory.length!==1?'s':''}
@@ -2659,9 +2656,9 @@ const App=()=>{
     return()=>window.removeEventListener('fb',h);
   },[user]);
 
-  const isAdmin  = user?.role==='admin';
-  const isGerenc = user?.role==='gerencia';
-  const isEmp    = user?.role==='empleado';
+  const isAdmin  = user&&user.role==='admin';
+  const isGerenc = user&&user.role==='gerencia';
+  const isEmp    = user&&user.role==='empleado';
 
   /* ── Tabs por rol ──
      Admin    : Dashboard global, Proyectos (solo ver), Reportes (ver+comentar), Usuarios (ver+eliminar)
